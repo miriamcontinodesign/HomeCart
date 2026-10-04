@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,7 @@ export default function ProfileScreen() {
   const { colors, mode, setMode } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const fullName = user?.user_metadata?.full_name || profile?.full_name || 'Traveler';
   const email = user?.email || '';
@@ -125,6 +126,22 @@ export default function ProfileScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => setPasswordOpen(true)}
+          style={[styles.settingsRow, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 10 }]}
+        >
+          <View style={[styles.infoIconWrap, { backgroundColor: colors.primarySubtle }]}>
+            <MaterialCommunityIcons name="lock-reset" size={18} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>Change password</Text>
+            <Text style={[styles.infoLabel, { color: colors.textTertiary, fontWeight: '400', letterSpacing: 0 }]}>
+              Update the password you sign in with
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+        </TouchableOpacity>
+
         {/* Sign out */}
         <TouchableOpacity
           onPress={signOut}
@@ -138,6 +155,11 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <SettingsScreen visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ChangePasswordSheet
+        visible={passwordOpen}
+        onClose={() => setPasswordOpen(false)}
+        email={user?.email || ''}
+      />
       <ChangeCountrySheet
         visible={countryOpen}
         onClose={() => setCountryOpen(false)}
@@ -165,6 +187,122 @@ function InfoRow({
         <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{value}</Text>
       </View>
     </View>
+  );
+}
+
+// Supabase lets any signed-in session set a new password, so confirm the current one
+// first: a forgotten, still-signed-in browser shouldn't be enough to take over the account.
+const MIN_PASSWORD_LENGTH = 8;
+
+function ChangePasswordSheet({
+  visible, onClose, email,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  email: string;
+}) {
+  const { colors } = useTheme();
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  React.useEffect(() => {
+    if (visible) {
+      setCurrent(''); setNext(''); setConfirm('');
+      setError(null); setDone(false);
+    }
+  }, [visible]);
+
+  const validationError =
+    next && next.length < MIN_PASSWORD_LENGTH ? `Use at least ${MIN_PASSWORD_LENGTH} characters.`
+    : next && next === current ? 'The new password must be different from the current one.'
+    : confirm && confirm !== next ? "The new passwords don't match."
+    : null;
+  const canSave = !!current && !!next && !!confirm && !validationError && !saving;
+
+  const save = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password: current });
+      if (authError) {
+        setError('Your current password is incorrect.');
+        return;
+      }
+      const { error: updateError } = await supabase.auth.updateUser({ password: next });
+      if (updateError) throw updateError;
+      setDone(true);
+    } catch (e: any) {
+      setError(e?.message || 'Could not change your password. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = (label: string, value: string, onChange: (v: string) => void, autoComplete: 'current-password' | 'new-password') => (
+    <View style={{ marginTop: 14 }}>
+      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <TextInput
+        style={[styles.passwordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+        value={value}
+        onChangeText={onChange}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete={autoComplete}
+        placeholderTextColor={colors.textTertiary}
+      />
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+      <View style={[styles.sheet, { backgroundColor: colors.bg }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Change password</Text>
+          <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
+            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {done ? (
+          <View style={styles.doneWrap}>
+            <MaterialCommunityIcons name="check-circle" size={48} color={colors.scoreHigh} />
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary, marginTop: 12, fontSize: 18 }]}>Password updated</Text>
+            <Text style={[styles.sheetSub, { color: colors.textSecondary, textAlign: 'center' }]}>
+              Use your new password the next time you sign in.
+            </Text>
+            <TouchableOpacity onPress={onClose} style={[styles.saveButton, { backgroundColor: colors.primary, alignSelf: 'stretch' }]}>
+              <Text style={styles.saveText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={[styles.sheetSub, { color: colors.textSecondary }]}>
+              Signed in as {email}
+            </Text>
+            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {field('Current password', current, setCurrent, 'current-password')}
+              {field(`New password (at least ${MIN_PASSWORD_LENGTH} characters)`, next, setNext, 'new-password')}
+              {field('Confirm new password', confirm, setConfirm, 'new-password')}
+              {!!(validationError || error) && (
+                <Text style={[styles.sheetError, { color: colors.error, marginTop: 14 }]}>{error || validationError}</Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              onPress={save}
+              disabled={!canSave}
+              style={[styles.saveButton, { backgroundColor: colors.primary, opacity: canSave ? 1 : 0.5 }]}
+            >
+              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Update password</Text>}
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    </Modal>
   );
 }
 
@@ -262,6 +400,9 @@ const styles = StyleSheet.create({
   sheetError: { fontSize: 13, marginBottom: 10, textAlign: 'center' },
   saveButton: { padding: 15, borderRadius: 14, alignItems: 'center' },
   saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  passwordInput: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 15 },
+  doneWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   container: { flex: 1 },
   content: { padding: 20 },
   headerSection: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
