@@ -282,7 +282,9 @@ If the image is unclear or not a food product, use match_score: 0 and explain in
         if not byok.llm_key:
             _enforce_daily_quota(byok.user_id, "scan")
         response_text = await call_llm_vision(
-            req.image_base64, prompt,
+            # Headroom for free "thinking" models, which otherwise run out of tokens
+            # before writing the JSON and return an empty reply.
+            req.image_base64, prompt, max_tokens=4000,
             override_key=byok.llm_key, override_model=byok.llm_vision_model,
             validate=parse_json_from_response,
         )
