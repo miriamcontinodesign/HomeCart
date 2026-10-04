@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -124,9 +125,8 @@ function AppContent() {
   // Tracks whether the BYOK-only build has a usable LLM key. `null` until first check.
   const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(BYOK_ONLY ? null : true);
 
-  // One-shot cleanup of orphaned SecureStore entries from older builds (Maps key,
-  // Tavily, Firecrawl, explicit provider override). Runs once on mount — safe to
-  // call repeatedly because deleteItemAsync is a no-op when the key is absent.
+  // One-shot cleanup of orphaned BYOK entries from older builds (Maps key, Tavily,
+  // Firecrawl, explicit provider override). Safe to call repeatedly.
   useEffect(() => {
     clearLegacyByokKeys();
   }, []);
@@ -186,17 +186,36 @@ function AppContent() {
   );
 }
 
+// The UI is designed phone-first; on wide screens keep it in a centered column
+// rather than stretching cards and the tab bar edge to edge.
+function AppFrame({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.frameOuter, { backgroundColor: colors.bg }]}>
+      <View style={[styles.frameInner, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <StatusBar style="light" />
-        <AppContent />
-      </ThemeProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <StatusBar style="light" />
+          <AppFrame>
+            <AppContent />
+          </AppFrame>
+        </ThemeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  frameOuter: { flex: 1, alignItems: 'center' },
+  frameInner: { flex: 1, width: '100%', maxWidth: 640, borderLeftWidth: 1, borderRightWidth: 1 },
 });

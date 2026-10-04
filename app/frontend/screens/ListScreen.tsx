@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import ErrorCard from '../components/ErrorCard';
+import { describeError, FriendlyError } from '../lib/errors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { apiFetchJson, QuotaExceededError } from '../lib/api';
+import { apiFetchJson } from '../lib/api';
 
 type Ingredient = {
   original_ingredient: string;
@@ -27,6 +29,8 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
   const [loading, setLoading] = useState(false);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [dishName, setDishName] = useState('');
+  const [error, setError] = useState<FriendlyError | null>(null);
+  const [lastTarget, setLastTarget] = useState('');
   // Track which dish we've already auto-imported so re-renders / focus events don't loop.
   const autoImportedRef = useRef<string | null>(null);
 
@@ -34,6 +38,8 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
     const target = (overrideDish ?? dish).trim();
     if (!target) return;
     setLoading(true);
+    setError(null);
+    setLastTarget(target);
     try {
       const data = await apiFetchJson('/recipe', {
         method: 'POST',
@@ -52,16 +58,9 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
       setIngredients(data.ingredients || []);
       setDishName(data.dish_name || target);
       setDish('');
-    } catch (err: any) {
-      if (err instanceof QuotaExceededError) {
-        Alert.alert(
-          'Daily limit reached',
-          err.message + ' Open the Profile tab → Settings to add your own LLM key for unlimited use.',
-          [{ text: 'Got it' }],
-        );
-        return;
-      }
-      Alert.alert('Recipe Import Failed', err.message);
+    } catch (err) {
+      console.error('Recipe import failed:', err);
+      setError(describeError(err));
     } finally {
       setLoading(false);
     }
@@ -110,8 +109,24 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
           </TouchableOpacity>
         </View>
 
+        {loading && (
+          <Text style={[styles.loadingHint, { color: colors.textTertiary }]}>
+            Building your shopping list… free AI models can take up to a minute.
+          </Text>
+        )}
+
+        {error && !loading && (
+          <View style={{ marginTop: 20 }}>
+            <ErrorCard
+              error={error}
+              onRetry={() => importRecipe(lastTarget)}
+              onDismiss={() => setError(null)}
+            />
+          </View>
+        )}
+
         {/* Suggested dishes */}
-        {ingredients.length === 0 && !loading && (
+        {ingredients.length === 0 && !loading && !error && (
           <View style={{ marginTop: 24 }}>
             <Text style={[styles.suggestLabel, { color: colors.textTertiary }]}>TRY ONE OF THESE</Text>
             <View style={styles.chipWrap}>
@@ -229,6 +244,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
 }
 
 const styles = StyleSheet.create({
+  loadingHint: { fontSize: 13, marginTop: 14, textAlign: 'center' },
   container: { flex: 1 },
   scrollContent: { padding: 20 },
   title: { fontSize: 28, fontWeight: '700', marginTop: 4 },

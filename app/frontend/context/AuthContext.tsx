@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -41,11 +41,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  // The user whose profile is loaded (or loading); see onAuthStateChange below.
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user && session.user.id === userIdRef.current) return;
+      userIdRef.current = session?.user?.id ?? null;
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
@@ -56,6 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // supabase-js re-emits events for the same user on token refresh and when a browser
+      // tab regains focus. Refetching then would flash the full-screen loader and unmount
+      // every screen (losing in-flight recipe/scan state), so only refetch on a user change.
+      if (session?.user && session.user.id === userIdRef.current) return;
+      userIdRef.current = session?.user?.id ?? null;
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
@@ -67,9 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    setLoading(true);
-    setProfile(undefined);
+  // `silent` keeps the current screens mounted (no full-screen loader) — used when the
+  // signed-in user edits their own profile.
+  const fetchProfile = async (userId: string, silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setProfile(undefined);
+    }
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -77,7 +90,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error) {
+      if (error && silent) {
+        // Keep the profile we already have rather than bouncing the user to onboarding.
+        console.error('Profile refresh error:', error);
+      } else if (error) {
         if (error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
           console.error('Profile fetch error:', error);
         }
@@ -90,14 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Profile fetch failed:', err);
-      setProfile(null);
+      if (!silent) setProfile(null);
     } finally {
       setLoading(false);
     }
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, true);
   };
 
   const signOut = async () => {

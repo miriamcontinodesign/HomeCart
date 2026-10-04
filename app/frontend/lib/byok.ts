@@ -1,13 +1,25 @@
 // BYOK (bring your own key) storage layer.
-// Keys live in expo-secure-store: Android Keystore on Android, Keychain on iOS — both
-// hardware-backed. The keys are never logged, never persisted on the backend, never
-// shipped over the wire except as request headers to the user's own provider on the
-// single API call that needs them.
+// Keys live in the browser's localStorage, scoped to this origin. That is NOT as strong as a
+// phone's hardware keystore: any script running on the page (e.g. via an XSS bug or a
+// malicious extension) could read it. SettingsScreen tells the user this. The keys are never
+// logged, never persisted on the backend, and only leave the browser as request headers on
+// the API calls that need them.
 //
 // Scope: LLM provider keys ONLY. Maps, Tavily, Firecrawl are operator-managed —
 // see the BYOK redesign rationale in CLAUDE.md (under "Conventions and gotchas").
 
-import * as SecureStore from 'expo-secure-store';
+// localStorage can throw (Safari private mode, blocked site data); treat that as "no key".
+const store = {
+  get(name: string): string | null {
+    try { return window.localStorage.getItem(name); } catch { return null; }
+  },
+  set(name: string, value: string): void {
+    window.localStorage.setItem(name, value);
+  },
+  remove(name: string): void {
+    try { window.localStorage.removeItem(name); } catch { /* ignore */ }
+  },
+};
 
 export type LLMProvider = 'openrouter' | 'openai' | 'anthropic';
 
@@ -23,7 +35,7 @@ const KEY_NAMES = {
   llmTextModel: 'byok_llm_text_model',
 } as const;
 
-// Legacy SecureStore entries written by older builds. Wiped on app start to prevent
+// Legacy entries written by older builds. Wiped on app start to prevent
 // stale state from being forwarded as headers and silently breaking things.
 const LEGACY_KEY_NAMES = [
   'byok_llm_provider',   // explicit provider override — removed; we detect from key prefix
@@ -35,7 +47,7 @@ const LEGACY_KEY_NAMES = [
 export async function loadByokKeys(): Promise<ByokKeys> {
   const entries = await Promise.all(
     (Object.entries(KEY_NAMES) as [keyof ByokKeys, string][]).map(async ([k, name]) => {
-      const v = await SecureStore.getItemAsync(name);
+      const v = store.get(name);
       return [k, v || undefined] as const;
     }),
   );
@@ -44,34 +56,23 @@ export async function loadByokKeys(): Promise<ByokKeys> {
 
 export async function saveByokKeys(keys: ByokKeys): Promise<void> {
   // Persist non-empty entries; delete empties so a saved-then-cleared field goes away.
-  const ops: Promise<void>[] = [];
   for (const [k, secureKey] of Object.entries(KEY_NAMES) as [keyof ByokKeys, string][]) {
     const value = keys[k];
     if (value && value.trim()) {
-      ops.push(SecureStore.setItemAsync(secureKey, value.trim()));
+      store.set(secureKey, value.trim());
     } else {
-      ops.push(SecureStore.deleteItemAsync(secureKey).catch(() => undefined as any));
+      store.remove(secureKey);
     }
   }
-  await Promise.all(ops);
 }
 
 export async function clearAllByokKeys(): Promise<void> {
-  await Promise.all(
-    Object.values(KEY_NAMES).map(name =>
-      SecureStore.deleteItemAsync(name).catch(() => undefined),
-    ),
-  );
+  Object.values(KEY_NAMES).forEach(name => store.remove(name));
 }
 
-// One-shot cleanup of SecureStore entries written by older builds. Safe to call on every
-// cold start — SecureStore.deleteItemAsync is a no-op when the key is absent.
+// One-shot cleanup of entries written by older builds. Safe to call on every load.
 export async function clearLegacyByokKeys(): Promise<void> {
-  await Promise.all(
-    LEGACY_KEY_NAMES.map(name =>
-      SecureStore.deleteItemAsync(name).catch(() => undefined),
-    ),
-  );
+  LEGACY_KEY_NAMES.forEach(name => store.remove(name));
 }
 
 // Detect the LLM provider from a key prefix. THIS is the source of truth — the backend

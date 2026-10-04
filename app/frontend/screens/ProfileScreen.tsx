@@ -1,38 +1,28 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import SettingsScreen from './SettingsScreen';
-
-const COUNTRY_FLAG: Record<string, string> = {
-  india: '🇮🇳', pakistan: '🇵🇰', bangladesh: '🇧🇩', srilanka: '🇱🇰', nepal: '🇳🇵',
-  china: '🇨🇳', japan: '🇯🇵', korea: '🇰🇷', taiwan: '🇹🇼',
-  vietnam: '🇻🇳', thailand: '🇹🇭', philippines: '🇵🇭', indonesia: '🇮🇩', malaysia: '🇲🇾', singapore: '🇸🇬',
-  italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', portugal: '🇵🇹', greece: '🇬🇷', germany: '🇩🇪', poland: '🇵🇱',
-  turkey: '🇹🇷', russia: '🇷🇺', ukraine: '🇺🇦',
-  iran: '🇮🇷', lebanon: '🇱🇧', israel: '🇮🇱', egypt: '🇪🇬',
-  nigeria: '🇳🇬', ghana: '🇬🇭', ethiopia: '🇪🇹', morocco: '🇲🇦', southafrica: '🇿🇦', kenya: '🇰🇪',
-  mexico: '🇲🇽', brazil: '🇧🇷', argentina: '🇦🇷', peru: '🇵🇪', colombia: '🇨🇴', venezuela: '🇻🇪',
-  cuba: '🇨🇺', jamaica: '🇯🇲', usa: '🇺🇸',
-};
+import CountryPicker from '../components/CountryPicker';
+import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
+import { supabase } from '../lib/supabase';
 
 const CONFIDENCE_LABELS: Record<number, string> = {
   1: 'Beginner', 2: 'Casual', 3: 'Home cook', 4: 'Confident', 5: 'Expert',
 };
 
 export default function ProfileScreen() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { colors, mode, setMode } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const fullName = user?.user_metadata?.full_name || profile?.full_name || 'Traveler';
   const email = user?.email || '';
-  const flag = COUNTRY_FLAG[profile?.home_country || ''] || '🌍';
-  const country = profile?.home_country
-    ? profile.home_country.charAt(0).toUpperCase() + profile.home_country.slice(1)
-    : 'Not set';
+  const flag = countryFlag(profile?.home_country);
+  const country = countryName(profile?.home_country) || 'Not set';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -53,6 +43,13 @@ export default function ProfileScreen() {
           {!!profile?.home_region && (
             <Text style={[styles.region, { color: colors.textSecondary }]}>{profile.home_region}</Text>
           )}
+          <TouchableOpacity
+            onPress={() => setCountryOpen(true)}
+            style={[styles.changeButton, { borderColor: colors.border }]}
+          >
+            <MaterialCommunityIcons name="pencil-outline" size={14} color={colors.primary} />
+            <Text style={[styles.changeText, { color: colors.primary }]}>Change country</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Profile info section */}
@@ -122,7 +119,7 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>API Keys (BYOK)</Text>
             <Text style={[styles.infoLabel, { color: colors.textTertiary, fontWeight: '400', letterSpacing: 0 }]}>
-              Use your own LLM, Maps, Tavily & Firecrawl keys
+              Use your own AI key for unlimited scans and recipes
             </Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -141,6 +138,14 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <SettingsScreen visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ChangeCountrySheet
+        visible={countryOpen}
+        onClose={() => setCountryOpen(false)}
+        userId={user?.id}
+        initialCountry={profile?.home_country || ''}
+        initialRegion={profile?.home_region || ''}
+        onSaved={refreshProfile}
+      />
     </SafeAreaView>
   );
 }
@@ -163,7 +168,100 @@ function InfoRow({
   );
 }
 
+function ChangeCountrySheet({
+  visible, onClose, userId, initialCountry, initialRegion, onSaved,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  userId?: string;
+  initialCountry: string;
+  initialRegion: string;
+  onSaved: () => Promise<void>;
+}) {
+  const { colors } = useTheme();
+  const [countryId, setCountryId] = useState(initialCountry);
+  const [region, setRegion] = useState(initialRegion);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Start from the saved values each time the sheet opens.
+  React.useEffect(() => {
+    if (visible) {
+      setCountryId(initialCountry);
+      setRegion(initialRegion);
+      setError(null);
+    }
+  }, [visible, initialCountry, initialRegion]);
+
+  const unchanged = countryId === initialCountry && region === initialRegion;
+
+  const save = async () => {
+    if (!userId || !countryId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { error: dbError } = await supabase.from('profiles').update({
+        home_country: countryId,
+        home_region: region || null,
+        home_cuisines: homeCuisinesFor(countryId, region),
+        updated_at: new Date().toISOString(),
+      }).eq('id', userId);
+      if (dbError) throw dbError;
+      await onSaved();
+      onClose();
+    } catch (e: any) {
+      setError(e?.message || 'Could not save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+      <View style={[styles.sheet, { backgroundColor: colors.bg }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Home country</Text>
+          <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
+            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.sheetSub, { color: colors.textSecondary }]}>
+          Scans, recipes and store searches are tailored to this cuisine.
+        </Text>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+          <CountryPicker
+            countryId={countryId}
+            region={region}
+            onChangeCountry={setCountryId}
+            onChangeRegion={setRegion}
+          />
+        </ScrollView>
+        {!!error && <Text style={[styles.sheetError, { color: colors.error }]}>{error}</Text>}
+        <TouchableOpacity
+          onPress={save}
+          disabled={saving || unchanged || !countryId}
+          style={[styles.saveButton, { backgroundColor: colors.primary, opacity: saving || unchanged || !countryId ? 0.5 : 1 }]}
+        >
+          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save</Text>}
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
+  changeButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
+  },
+  changeText: { fontSize: 13, fontWeight: '600' },
+  sheet: { flex: 1, padding: 20, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sheetTitle: { fontSize: 22, fontWeight: '700' },
+  sheetSub: { fontSize: 14, marginTop: 6, marginBottom: 18, lineHeight: 20 },
+  sheetError: { fontSize: 13, marginBottom: 10, textAlign: 'center' },
+  saveButton: { padding: 15, borderRadius: 14, alignItems: 'center' },
+  saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   container: { flex: 1 },
   content: { padding: 20 },
   headerSection: { alignItems: 'center', marginTop: 8, marginBottom: 24 },

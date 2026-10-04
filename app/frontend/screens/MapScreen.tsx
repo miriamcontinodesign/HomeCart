@@ -3,12 +3,13 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Linking, Modal,
 } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import {
+  APIProvider, Map, AdvancedMarker, AdvancedMarkerAnchorPoint, ColorScheme, useMap,
+} from '@vis.gl/react-google-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
-import { darkMapStyle } from './mapStyle';
 import { apiFetch } from '../lib/api';
 
 interface Store {
@@ -37,9 +38,18 @@ interface Store {
 interface MapRegion {
   latitude: number;
   longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
 }
+
+// Browser key for the Maps JavaScript API. Distinct from the backend's GOOGLE_MAPS_API_KEY:
+// this one ships to every visitor, so it must be HTTP-referrer-restricted to our domains.
+const MAPS_BROWSER_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || '';
+// Advanced markers require a Map ID. DEMO_MAP_ID works for development; create a real one
+// in Cloud Console → Map Management for production.
+const MAP_ID = process.env.EXPO_PUBLIC_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
+const STORE_ZOOM = 15;
+const USER_ZOOM = 13;
+
+type Padding = { top: number; right: number; bottom: number; left: number };
 
 interface NeededItem {
   name: string;
@@ -84,14 +94,37 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export default function MapScreen({ route }: MapScreenProps) {
+export default function MapScreen(props: MapScreenProps) {
+  const { colors } = useTheme();
+  if (!MAPS_BROWSER_KEY) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.bg, padding: 32 }]}>
+        <MaterialCommunityIcons name="map-marker-off-outline" size={40} color={colors.textTertiary} />
+        <Text style={[styles.hintTitle, { color: colors.textPrimary }]}>Map not configured</Text>
+        <Text style={[styles.hintBody, { color: colors.textSecondary }]}>
+          Set EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY in the frontend .env and restart.
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <APIProvider apiKey={MAPS_BROWSER_KEY}>
+      <MapScreenInner {...props} />
+    </APIProvider>
+  );
+}
+
+function MapScreenInner({ route }: MapScreenProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const initialCuisine = route?.params?.cuisine;
   const productName = route?.params?.productName;
   const productContext = route?.params?.product_context;
 
-  const mapRef = useRef<MapView | null>(null);
+  const map = useMap();
+  // fetchStores runs before the map instance exists on first load, so read it through a ref.
+  const mapRef = useRef<google.maps.Map | null>(null);
+  mapRef.current = map;
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null);
   const [lastFetchedCenter, setLastFetchedCenter] = useState<{ lat: number; lon: number } | null>(null);
@@ -104,10 +137,26 @@ export default function MapScreen({ route }: MapScreenProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showStoreList, setShowStoreList] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  // react-native-maps + Android needs tracksViewChanges=true briefly while the view-based
-  // Marker children paint, otherwise the marker snapshots a zero-size empty view and stays
-  // invisible. We turn it on every time stores change, then turn off after ~600ms.
-  const [tracksChanges, setTracksChanges] = useState(true);
+
+  // Set while the map moves on its own (auto-fit to results) so the resulting idle event
+  // doesn't count as the user panning away and pop up "Search this area".
+  const programmaticMove = useRef(false);
+
+  const fitTo = (points: { lat: number; lon: number }[], padding: Padding) => {
+    if (!mapRef.current || points.length === 0) return;
+    programmaticMove.current = true;
+    // If the bounds already fit, no idle event fires — don't swallow the user's next pan.
+    setTimeout(() => { programmaticMove.current = false; }, 1500);
+    const bounds = new google.maps.LatLngBounds();
+    points.forEach(p => bounds.extend({ lat: p.lat, lng: p.lon }));
+    mapRef.current.fitBounds(bounds, padding);
+  };
+
+  const panTo = (lat: number, lon: number, zoom: number) => {
+    if (!mapRef.current) return;
+    mapRef.current.panTo({ lat, lng: lon });
+    mapRef.current.setZoom(zoom);
+  };
 
   const fetchStores = useCallback(
     async (lat: number, lon: number, cuisine?: string, pc?: ProductContext) => {
@@ -140,13 +189,7 @@ export default function MapScreen({ route }: MapScreenProps) {
           // so specialty results often land off-screen on first load. Frame them so the
           // user sees something without having to pan + "Search this area".
           setTimeout(() => {
-            if (!mapRef.current) return;
-            const coords = newStores.map(s => ({ latitude: s.lat, longitude: s.lon }));
-            coords.push({ latitude: lat, longitude: lon });
-            mapRef.current.fitToCoordinates(coords, {
-              edgePadding: { top: insets.top + 130, right: 60, bottom: 160, left: 60 },
-              animated: true,
-            });
+            fitTo([...newStores, { lat, lon }], { top: insets.top + 130, right: 60, bottom: 160, left: 60 });
           }, 100);
         }
       } catch (e: any) {
@@ -165,16 +208,20 @@ export default function MapScreen({ route }: MapScreenProps) {
   // Otherwise the user pressed the Map tab cold — show the empty-state hint.
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
       let lat = 40.7128;
       let lon = -74.0060;
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
-        lat = loc.coords.latitude;
-        lon = loc.coords.longitude;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          lat = loc.coords.latitude;
+          lon = loc.coords.longitude;
+        }
+      } catch {
+        // Browser blocked or lacks geolocation (e.g. non-HTTPS origin) — fall back to NYC.
       }
       setUserLocation({ lat, lon });
-      setMapRegion({ latitude: lat, longitude: lon, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+      setMapRegion({ latitude: lat, longitude: lon });
       const hasContext = !!initialCuisine || !!productName || !!productContext;
       if (hasContext) {
         await fetchStores(lat, lon, initialCuisine, productContext);
@@ -197,8 +244,15 @@ export default function MapScreen({ route }: MapScreenProps) {
     );
   };
 
-  const onRegionChangeComplete = (region: MapRegion) => {
+  const onMapIdle = () => {
+    const center = mapRef.current?.getCenter();
+    if (!center) return;
+    const region = { latitude: center.lat(), longitude: center.lng() };
     setMapRegion(region);
+    if (programmaticMove.current) {
+      programmaticMove.current = false;
+      return;
+    }
     if (!lastFetchedCenter) return;
     const moved = haversineKm(region.latitude, region.longitude, lastFetchedCenter.lat, lastFetchedCenter.lon);
     if (moved > 1) setShowSearchHere(true);
@@ -211,35 +265,24 @@ export default function MapScreen({ route }: MapScreenProps) {
   };
 
   const onRecenter = () => {
-    if (!userLocation || !mapRef.current) return;
-    mapRef.current.animateToRegion(
-      { latitude: userLocation.lat, longitude: userLocation.lon, latitudeDelta: 0.05, longitudeDelta: 0.05 },
-      500,
-    );
+    if (!userLocation) return;
+    panTo(userLocation.lat, userLocation.lon, USER_ZOOM);
   };
 
   // Fit the map to all current stores, leaving room at the bottom for the open list sheet
   // so markers don't get hidden under it.
   const fitToAllStores = useCallback(() => {
-    if (!mapRef.current || stores.length === 0) return;
-    const coords = stores.map(s => ({ latitude: s.lat, longitude: s.lon }));
-    if (userLocation) coords.push({ latitude: userLocation.lat, longitude: userLocation.lon });
-    mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: insets.top + 120, right: 60, bottom: 560, left: 60 },
-      animated: true,
-    });
+    if (stores.length === 0) return;
+    fitTo(userLocation ? [...stores, userLocation] : stores, { top: insets.top + 120, right: 60, bottom: 560, left: 60 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stores, userLocation, insets.top]);
 
   // Pan to a single store and open its detail sheet. Used from the list rows.
   const focusOnStore = useCallback((store: Store) => {
     setShowStoreList(false);
     setSelectedStore(store);
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        { latitude: store.lat, longitude: store.lon, latitudeDelta: 0.02, longitudeDelta: 0.02 },
-        500,
-      );
-    }
+    panTo(store.lat, store.lon, STORE_ZOOM);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When the user opens the store list modal, frame the map so all stores fit above the sheet.
@@ -250,15 +293,6 @@ export default function MapScreen({ route }: MapScreenProps) {
       return () => clearTimeout(t);
     }
   }, [showStoreList, fitToAllStores]);
-
-  // Whenever the store list changes, briefly enable tracksViewChanges so each marker's
-  // view-based child has time to render before we lock in its appearance.
-  useEffect(() => {
-    if (stores.length === 0) return;
-    setTracksChanges(true);
-    const t = setTimeout(() => setTracksChanges(false), 600);
-    return () => clearTimeout(t);
-  }, [stores]);
 
   const cuisineColor = (s: Store) => {
     const cs = s.cuisines || [];
@@ -290,8 +324,7 @@ export default function MapScreen({ route }: MapScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {/* Context banner (when navigated from scan/recipe). Pushed down by the device's status-bar inset
-          so it never lands behind the Android system clock/icons. */}
+      {/* Context banner (when navigated from scan/recipe). */}
       {productName && (
         <View style={[styles.bannerSafe, { paddingTop: insets.top + 8 }]}>
           <View style={[styles.contextBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -306,48 +339,57 @@ export default function MapScreen({ route }: MapScreenProps) {
         </View>
       )}
 
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_GOOGLE}
-        style={StyleSheet.absoluteFillObject}
-        initialRegion={mapRegion}
-        onRegionChangeComplete={onRegionChangeComplete}
-        customMapStyle={isDark ? darkMapStyle : []}
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsCompass={false}
-      >
-        {stores.map(store => (
-          <Marker
-            key={store.place_id}
-            coordinate={{ latitude: store.lat, longitude: store.lon }}
-            onPress={() => setSelectedStore(store)}
-            tracksViewChanges={tracksChanges}
-            anchor={{ x: 0.5, y: 0.5 }}
-            title={store.name}
-            description={
-              isRecipeFlow
-                ? `${store.coverage_matched}/${store.coverage_total} items · ${store.distance_km.toFixed(1)} km`
-                : `Match ${Math.round(store.final_score)} · ${store.distance_km.toFixed(1)} km`
-            }
-          >
-            <View
-              style={[
-                styles.markerPin,
-                {
-                  backgroundColor: cuisineColor(store),
-                  borderColor: colors.bg,
-                },
-                store.is_specialty && styles.markerSpecialty,
-              ]}
+      <View style={StyleSheet.absoluteFillObject}>
+        <Map
+          style={{ width: '100%', height: '100%' }}
+          defaultCenter={{ lat: mapRegion.latitude, lng: mapRegion.longitude }}
+          defaultZoom={USER_ZOOM}
+          mapId={MAP_ID}
+          colorScheme={isDark ? ColorScheme.DARK : ColorScheme.LIGHT}
+          onIdle={onMapIdle}
+          disableDefaultUI
+          gestureHandling="greedy"
+        >
+          {userLocation && (
+            <AdvancedMarker
+              position={{ lat: userLocation.lat, lng: userLocation.lon }}
+              anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+              title="You are here"
+              zIndex={0}
             >
-              <Text style={styles.markerText}>
-                {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
-              </Text>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+              <View style={styles.userDot} />
+            </AdvancedMarker>
+          )}
+          {stores.map(store => (
+            <AdvancedMarker
+              key={store.place_id}
+              position={{ lat: store.lat, lng: store.lon }}
+              onClick={() => setSelectedStore(store)}
+              anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+              title={
+                isRecipeFlow
+                  ? `${store.name} · ${store.coverage_matched}/${store.coverage_total} items · ${store.distance_km.toFixed(1)} km`
+                  : `${store.name} · Match ${Math.round(store.final_score)} · ${store.distance_km.toFixed(1)} km`
+              }
+            >
+              <View
+                style={[
+                  styles.markerPin,
+                  {
+                    backgroundColor: cuisineColor(store),
+                    borderColor: colors.bg,
+                  },
+                  store.is_specialty && styles.markerSpecialty,
+                ]}
+              >
+                <Text style={styles.markerText}>
+                  {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
+                </Text>
+              </View>
+            </AdvancedMarker>
+          ))}
+        </Map>
+      </View>
 
       {/* Cuisine filter chips — hidden in recipe-coverage flow because they conflict with
           the coverage view (tapping a cuisine narrows the store set but the user almost always
@@ -403,13 +445,15 @@ export default function MapScreen({ route }: MapScreenProps) {
         </TouchableOpacity>
       )}
 
-      {/* Recenter FAB — bottom-right above tab bar */}
+      {/* Recenter FAB — bottom-right above tab bar; hidden while the store sheet covers that spot */}
+      {!selectedStore && (
       <TouchableOpacity
         onPress={onRecenter}
         style={[styles.fab, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.primary} />
       </TouchableOpacity>
+      )}
 
       {/* Empty-state hint card — only on cold open with no context */}
       {!hasFetched && !loading && !productName && (
@@ -720,6 +764,14 @@ const styles = StyleSheet.create({
   },
   markerSpecialty: { borderWidth: 3 },
   markerText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
+  userDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+    borderWidth: 3,
+    borderColor: '#FFF',
+  },
   sheet: {
     position: 'absolute',
     bottom: 0,

@@ -1,5 +1,5 @@
 // HTTP client wrapper that attaches BYOK + identity headers to every backend call.
-// Reads keys from SecureStore at request time so a user's "Save" in Settings
+// Reads keys from browser storage at request time so a user's "Save" in Settings
 // takes effect on the very next API call without a reload.
 
 import { loadByokKeys } from './byok';
@@ -60,16 +60,15 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
 // if found. Otherwise returns the parsed body.
 export async function apiFetchJson(path: string, options: RequestInit = {}): Promise<any> {
   const res = await apiFetch(path, options);
-  if (res.status === 429) {
-    let detail: any = {};
-    try { detail = (await res.json()).detail || {}; } catch {}
-    if (detail?.error === 'quota_exceeded') throw new QuotaExceededError(detail);
-  }
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status}: ${text.slice(0, 300)}`);
-  }
-  return res.json();
+  if (res.ok) return res.json();
+
+  // A response body can only be read once, so read it as text and parse from that.
+  const text = await res.text();
+  let detail: any;
+  try { detail = JSON.parse(text).detail; } catch {}
+  if (res.status === 429 && detail?.error === 'quota_exceeded') throw new QuotaExceededError(detail);
+  // FastAPI puts human-readable messages in `detail`; fall back to the raw body.
+  throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}: ${text.slice(0, 300)}`);
 }
 
 export { API_URL };

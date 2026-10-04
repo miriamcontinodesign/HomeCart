@@ -8,10 +8,12 @@
 #   OPENROUTER_API_KEY        - copy from app/backend/.env
 #   GOOGLE_MAPS_API_KEY       - copy from app/backend/.env
 #
-# Optional (override default model routing):
-#   LLM_BASE_URL              - default https://openrouter.ai/api/v1
-#   LLM_VISION_MODEL          - default anthropic/claude-sonnet-4.6
-#   LLM_TEXT_MODEL            - default anthropic/claude-haiku-4.5
+# Optional (model routing — copy the LLM_* lines from app/backend/.env to run on free models):
+#   LLM_VISION_MODEL          - default openai/gpt-5.4-nano
+#   LLM_VISION_FALLBACKS      - comma-separated backups, tried in order
+#   LLM_TEXT_MODEL            - default deepseek/deepseek-v4-flash
+#   LLM_TEXT_FALLBACKS        - comma-separated backups, tried in order
+#   SCAN_DAILY_LIMIT / RECIPE_DAILY_LIMIT - per-user quota on the shared key (default 10 / 3)
 
 services:
   - type: web

@@ -1,67 +1,14 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet, Text, View, TouchableOpacity, ScrollView, Dimensions, FlatList, ActivityIndicator,
+  StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import CountryPicker from '../components/CountryPicker';
+import { homeCuisinesFor } from '../lib/countries';
 
-const { width } = Dimensions.get('window');
-
-const COUNTRIES = [
-  // South Asia
-  { id: 'india', name: 'India', flag: '🇮🇳', regions: ['North Indian', 'South Indian', 'Bengali', 'Gujarati', 'Punjabi', 'Maharashtrian', 'Karnataka', 'Kerala', 'Tamil', 'Hyderabadi', 'Goan'] },
-  { id: 'pakistan', name: 'Pakistan', flag: '🇵🇰', regions: ['Punjabi', 'Sindhi', 'Pashtun', 'Balochi'] },
-  { id: 'bangladesh', name: 'Bangladesh', flag: '🇧🇩', regions: ['Dhaka', 'Chittagong', 'Sylhet'] },
-  { id: 'srilanka', name: 'Sri Lanka', flag: '🇱🇰', regions: ['Sinhalese', 'Tamil'] },
-  { id: 'nepal', name: 'Nepal', flag: '🇳🇵', regions: ['Newari', 'Thakali', 'Tibetan'] },
-  // East Asia
-  { id: 'china', name: 'China', flag: '🇨🇳', regions: ['Sichuan', 'Cantonese', 'Hunan', 'Shanghainese', 'Northeastern', 'Xinjiang', 'Yunnan'] },
-  { id: 'japan', name: 'Japan', flag: '🇯🇵', regions: ['Kansai', 'Kanto', 'Okinawan', 'Hokkaido'] },
-  { id: 'korea', name: 'South Korea', flag: '🇰🇷', regions: ['Seoul', 'Jeolla', 'Gyeongsang', 'Jeju'] },
-  { id: 'taiwan', name: 'Taiwan', flag: '🇹🇼', regions: ['Taipei', 'Hakka', 'Aboriginal'] },
-  // Southeast Asia
-  { id: 'vietnam', name: 'Vietnam', flag: '🇻🇳', regions: ['Northern', 'Central', 'Southern'] },
-  { id: 'thailand', name: 'Thailand', flag: '🇹🇭', regions: ['Central', 'Northern', 'Northeastern (Isan)', 'Southern'] },
-  { id: 'philippines', name: 'Philippines', flag: '🇵🇭', regions: ['Luzon', 'Visayas', 'Mindanao'] },
-  { id: 'indonesia', name: 'Indonesia', flag: '🇮🇩', regions: ['Javanese', 'Sumatran', 'Balinese', 'Padang'] },
-  { id: 'malaysia', name: 'Malaysia', flag: '🇲🇾', regions: ['Malay', 'Chinese-Malay', 'Indian-Malay', 'Nyonya'] },
-  { id: 'singapore', name: 'Singapore', flag: '🇸🇬', regions: ['Chinese-Singaporean', 'Malay-Singaporean', 'Indian-Singaporean', 'Peranakan'] },
-  // Europe
-  { id: 'italy', name: 'Italy', flag: '🇮🇹', regions: ['Sicilian', 'Tuscan', 'Lombard', 'Neapolitan', 'Roman', 'Venetian', 'Calabrian', 'Sardinian', 'Emilian'] },
-  { id: 'france', name: 'France', flag: '🇫🇷', regions: ['Parisian', 'Provençal', 'Norman', 'Alsatian', 'Lyonnaise', 'Basque'] },
-  { id: 'spain', name: 'Spain', flag: '🇪🇸', regions: ['Catalan', 'Andalusian', 'Basque', 'Galician', 'Castilian', 'Valencian'] },
-  { id: 'portugal', name: 'Portugal', flag: '🇵🇹', regions: ['Lisbon', 'Porto', 'Alentejo', 'Azorean'] },
-  { id: 'greece', name: 'Greece', flag: '🇬🇷', regions: ['Mainland', 'Cretan', 'Aegean'] },
-  { id: 'germany', name: 'Germany', flag: '🇩🇪', regions: ['Bavarian', 'Berlin', 'Swabian', 'Northern'] },
-  { id: 'poland', name: 'Poland', flag: '🇵🇱', regions: ['Kraków', 'Warsaw', 'Silesian'] },
-  { id: 'turkey', name: 'Turkey', flag: '🇹🇷', regions: ['Istanbul', 'Anatolian', 'Aegean', 'Black Sea', 'Southeastern'] },
-  { id: 'russia', name: 'Russia', flag: '🇷🇺', regions: ['Moscow', 'Siberian', 'Caucasian'] },
-  { id: 'ukraine', name: 'Ukraine', flag: '🇺🇦', regions: ['Western', 'Central', 'Eastern'] },
-  // Middle East
-  { id: 'iran', name: 'Iran', flag: '🇮🇷', regions: ['Persian', 'Azeri', 'Kurdish'] },
-  { id: 'lebanon', name: 'Lebanon', flag: '🇱🇧', regions: ['Beirut', 'Bekaa'] },
-  { id: 'israel', name: 'Israel', flag: '🇮🇱', regions: ['Ashkenazi', 'Sephardic', 'Mizrahi'] },
-  { id: 'egypt', name: 'Egypt', flag: '🇪🇬', regions: ['Cairo', 'Alexandrian', 'Upper Egyptian'] },
-  // Africa
-  { id: 'nigeria', name: 'Nigeria', flag: '🇳🇬', regions: ['Yoruba', 'Igbo', 'Hausa'] },
-  { id: 'ghana', name: 'Ghana', flag: '🇬🇭', regions: ['Ashanti', 'Northern', 'Coastal'] },
-  { id: 'ethiopia', name: 'Ethiopia', flag: '🇪🇹', regions: ['Amhara', 'Tigray', 'Oromo'] },
-  { id: 'morocco', name: 'Morocco', flag: '🇲🇦', regions: ['Fez', 'Marrakesh', 'Berber'] },
-  { id: 'southafrica', name: 'South Africa', flag: '🇿🇦', regions: ['Cape Malay', 'Zulu', 'Afrikaner'] },
-  { id: 'kenya', name: 'Kenya', flag: '🇰🇪', regions: ['Coastal', 'Highland'] },
-  // Americas
-  { id: 'mexico', name: 'Mexico', flag: '🇲🇽', regions: ['Oaxacan', 'Yucatecan', 'Northern', 'Central', 'Pueblan'] },
-  { id: 'brazil', name: 'Brazil', flag: '🇧🇷', regions: ['Bahian', 'Mineiro', 'Gaúcho', 'Amazonian'] },
-  { id: 'argentina', name: 'Argentina', flag: '🇦🇷', regions: ['Buenos Aires', 'Patagonian', 'Northwestern'] },
-  { id: 'peru', name: 'Peru', flag: '🇵🇪', regions: ['Coastal', 'Andean', 'Amazonian'] },
-  { id: 'colombia', name: 'Colombia', flag: '🇨🇴', regions: ['Andean', 'Caribbean', 'Pacific'] },
-  { id: 'venezuela', name: 'Venezuela', flag: '🇻🇪', regions: ['Caracas', 'Andean', 'Llanero'] },
-  { id: 'cuba', name: 'Cuba', flag: '🇨🇺', regions: ['Havana', 'Eastern'] },
-  { id: 'jamaica', name: 'Jamaica', flag: '🇯🇲', regions: ['Kingston', 'Mountain'] },
-  { id: 'usa', name: 'USA', flag: '🇺🇸', regions: ['Southern', 'Tex-Mex', 'Cajun', 'New England', 'Soul Food'] },
-];
 
 const LANGUAGES = ['English', 'Spanish', 'Mandarin', 'Hindi', 'French', 'Japanese', 'Portuguese', 'Arabic', 'Korean', 'Vietnamese'];
 const DIETARY = ['Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-Free', 'Lactose-Free', 'Pescatarian'];
@@ -85,7 +32,6 @@ export default function OnboardingScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const TOTAL_STEPS = 4;
-  const selectedCountry = COUNTRIES.find(c => c.id === selectedCountryId);
 
   const toggleDietary = (item: string) =>
     setDietary(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
@@ -93,14 +39,12 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     if (!user || !selectedCountryId) return;
     setIsSubmitting(true);
-    const countryName = selectedCountry?.name || selectedCountryId;
-    const homeCuisines = selectedRegion ? [countryName, `${countryName} (${selectedRegion})`] : [countryName];
     try {
       const { error } = await supabase.from('profiles').upsert({
         id: user.id,
         home_country: selectedCountryId,
         home_region: selectedRegion || null,
-        home_cuisines: homeCuisines,
+        home_cuisines: homeCuisinesFor(selectedCountryId, selectedRegion),
         preferred_language: language,
         cooking_confidence: confidence,
         dietary_preferences: dietary,
@@ -123,54 +67,12 @@ export default function OnboardingScreen() {
         Select your home country and region so we can tailor ingredient translations to your cuisine.
       </Text>
 
-      <View style={styles.grid}>
-        {COUNTRIES.map(item => {
-          const selected = selectedCountryId === item.id;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.flagCard,
-                { backgroundColor: colors.surface, borderColor: selected ? colors.primary : colors.border },
-                selected && { backgroundColor: colors.primarySubtle },
-              ]}
-              onPress={() => { setSelectedCountryId(item.id); setSelectedRegion(''); }}
-            >
-              <Text style={styles.flagIcon}>{item.flag}</Text>
-              <Text style={[styles.flagName, { color: selected ? colors.primary : colors.textPrimary }]} numberOfLines={1}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {selectedCountry && selectedCountry.regions.length > 0 && (
-        <View style={styles.regionSection}>
-          <Text style={[styles.regionHeader, { color: colors.textTertiary }]}>REGION (OPTIONAL)</Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={selectedCountry.regions}
-            keyExtractor={r => r}
-            contentContainerStyle={styles.regionList}
-            renderItem={({ item: region }) => {
-              const sel = selectedRegion === region;
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.regionChip,
-                    { backgroundColor: sel ? colors.primary : colors.surface, borderColor: sel ? colors.primary : colors.border },
-                  ]}
-                  onPress={() => setSelectedRegion(sel ? '' : region)}
-                >
-                  <Text style={{ color: sel ? '#fff' : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{region}</Text>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
-      )}
+      <CountryPicker
+        countryId={selectedCountryId}
+        region={selectedRegion}
+        onChangeCountry={setSelectedCountryId}
+        onChangeRegion={setSelectedRegion}
+      />
     </View>
   );
 
@@ -306,22 +208,6 @@ const styles = StyleSheet.create({
   stepContainer: { flex: 1 },
   header: { fontSize: 26, fontWeight: '800', marginBottom: 8 },
   subheader: { fontSize: 14, marginBottom: 28, lineHeight: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
-  flagCard: {
-    width: (width - 68) / 3,
-    aspectRatio: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 6,
-  },
-  flagIcon: { fontSize: 26, marginBottom: 4 },
-  flagName: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  regionSection: { marginTop: 24 },
-  regionHeader: { fontSize: 11, fontWeight: '700', marginBottom: 10, letterSpacing: 1 },
-  regionList: { gap: 8 },
-  regionChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1, marginRight: 8 },
   list: { gap: 10 },
   listItem: { padding: 16, borderRadius: 14, borderWidth: 1 },
   confidenceCard: {

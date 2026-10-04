@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, Alert, Modal, Linking, FlatList,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Modal, Linking, FlatList,
 } from 'react-native';
+import { Alert } from '../lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
@@ -99,7 +99,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
     setSaving(true);
     try {
       await saveByokKeys(keys);
-      Alert.alert('Saved', 'Your key and model picks are stored securely on this device only.');
+      Alert.alert('Saved', 'Your key and model picks are saved in this browser only.');
       onClose();
     } catch (e: any) {
       Alert.alert('Save failed', e.message || 'Unknown error');
@@ -120,7 +120,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
           onPress: async () => {
             await clearAllByokKeys();
             setKeys({});
-            Alert.alert('Cleared', 'Your LLM key has been removed from this device.');
+            Alert.alert('Cleared', 'Your LLM key has been removed from this browser.');
           },
         },
       ],
@@ -152,7 +152,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>LLM API Key</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Use your own provider credits. Key stays on this device — never sent to HomeCart's servers.
+              Use your own provider credits. Your key is saved only in this browser and passed through HomeCart's server to your provider on each request — never stored there. Don't save it on a shared computer.
             </Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

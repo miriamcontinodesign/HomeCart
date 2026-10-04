@@ -50,7 +50,7 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
         </View>
 
         <Text style={[styles.privacy, { color: colors.textTertiary }]}>
-          Keys are stored only on this device using hardware-backed secure storage (Android Keystore).
+          Your key is saved only in this browser and is never stored on HomeCart's server. Don't save it on a shared computer.
           They are sent only as headers on the specific API call that needs them. The backend never
           logs or persists them.
         </Text>

@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Callable, Optional, List
 from supabase import create_client, Client
 import os
+import re
 import json
 import httpx
 from math import radians, sin, cos, sqrt, atan2
@@ -105,9 +106,10 @@ async def call_llm_vision(
     max_tokens: int = 1500,
     override_key: Optional[str] = None,
     override_model: Optional[str] = None,
+    validate: Optional[Callable[[str], object]] = None,
 ) -> str:
     return await llm_vision(image_base64, prompt, max_tokens=max_tokens,
-                            override_key=override_key, override_model=override_model)
+                            override_key=override_key, override_model=override_model, validate=validate)
 
 
 async def call_llm_text(
@@ -115,9 +117,10 @@ async def call_llm_text(
     max_tokens: int = 1500,
     override_key: Optional[str] = None,
     override_model: Optional[str] = None,
+    validate: Optional[Callable[[str], object]] = None,
 ) -> str:
     return await llm_text(prompt, max_tokens=max_tokens,
-                          override_key=override_key, override_model=override_model)
+                          override_key=override_key, override_model=override_model, validate=validate)
 
 
 # ============================
@@ -198,6 +201,16 @@ def parse_json_from_response(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
+
+def _coerce_store_types(item: dict) -> None:
+    """Weaker models sometimes return preferred_store_types as a bare string; the app and
+    /stores/nearby expect a list (a string would be iterated character by character)."""
+    v = item.get("preferred_store_types")
+    if isinstance(v, str):
+        item["preferred_store_types"] = [t.strip() for t in v.split(",") if t.strip()]
+    elif not isinstance(v, list):
+        item["preferred_store_types"] = []
+
 # ============================
 # ROUTES
 # ============================
@@ -259,7 +272,7 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "can_make_at_home": <true/false>,
   "home_recipe_summary": "<one sentence on how to make it, or null>",
   "availability_breadth": "<one of: 'mainstream' (common in any US supermarket, e.g. cauliflower, chicken, butter), 'specialty_only' (only in ethnic specialty stores, e.g. Alphonso mango, fresh paneer, banchan, curry leaves, masa harina), 'both' (mainstream carries a passable version but specialty has the real thing, e.g. basmati rice, soy sauce, olive oil)>",
-  "preferred_store_types": <array of store-type tokens that carry this product. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery". Always include 1-4 tokens.>
+  "preferred_store_types": <array of store-type tokens that carry this product. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery". Always include 1-4 tokens.>
 }}
 
 If the image is unclear or not a food product, use match_score: 0 and explain in cultural_equivalent.
@@ -271,8 +284,10 @@ If the image is unclear or not a food product, use match_score: 0 and explain in
         response_text = await call_llm_vision(
             req.image_base64, prompt,
             override_key=byok.llm_key, override_model=byok.llm_vision_model,
+            validate=parse_json_from_response,
         )
         result = parse_json_from_response(response_text)
+        _coerce_store_types(result)
 
         # Persist scan if user authenticated
         if user_id:
@@ -341,7 +356,7 @@ Output ONLY valid JSON (no preamble, no markdown):
       "ai_tip": "<one tip>",
       "can_make_at_home": <true/false>,
       "availability_breadth": "<'mainstream' | 'specialty_only' | 'both'>",
-      "preferred_store_types": <1-4 tokens from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery">
+      "preferred_store_types": <1-4 tokens from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery">
     }}
   ]
 }}
@@ -353,8 +368,11 @@ Output ONLY valid JSON (no preamble, no markdown):
         response_text = await call_llm_text(
             prompt, max_tokens=5000,
             override_key=byok.llm_key, override_model=byok.llm_text_model,
+            validate=parse_json_from_response,
         )
         result = parse_json_from_response(response_text)
+        for ing in result.get("ingredients", []):
+            _coerce_store_types(ing)
 
         # Persist if authenticated
         list_id = None
@@ -446,6 +464,67 @@ CUISINE_QUERIES: dict[str, list[str]] = {
     "nigerian": ["nigerian grocery", "african grocery"],
     "poland": ["polish grocery", "eastern european grocery"],
     "polish": ["polish grocery", "eastern european grocery"],
+    # South Asia
+    "bangladesh": ["bangladeshi grocery", "south asian grocery", "halal grocery"],
+    "srilanka": ["sri lankan grocery", "south asian grocery", "indian grocery"],
+    "nepal": ["nepali grocery", "himalayan grocery", "south asian grocery"],
+    # East & Southeast Asia
+    "taiwan": ["taiwanese grocery", "99 ranch", "asian supermarket"],
+    "hongkong": ["hong kong supermarket", "cantonese grocery", "asian supermarket"],
+    "indonesia": ["indonesian grocery", "southeast asian grocery", "asian supermarket"],
+    "malaysia": ["malaysian grocery", "southeast asian grocery", "asian supermarket"],
+    "singapore": ["southeast asian grocery", "malaysian grocery", "asian supermarket"],
+    "cambodia": ["cambodian grocery", "southeast asian grocery", "asian supermarket"],
+    "laos": ["lao grocery", "southeast asian grocery", "asian supermarket"],
+    "myanmar": ["burmese grocery", "southeast asian grocery", "asian supermarket"],
+    # Europe
+    "france": ["french grocery", "french bakery", "european market"],
+    "spain": ["spanish grocery", "european market", "gourmet grocery"],
+    "portugal": ["portuguese grocery", "portuguese bakery", "european market"],
+    "greece": ["greek grocery", "greek deli", "mediterranean market"],
+    "germany": ["german deli", "german grocery", "european market"],
+    "ireland": ["irish grocery", "british grocery", "european market"],
+    "uk": ["british grocery", "british shop", "european market"],
+    "sweden": ["scandinavian grocery", "swedish deli", "european market"],
+    "hungary": ["hungarian deli", "eastern european grocery", "european market"],
+    "czechia": ["czech deli", "eastern european grocery", "european market"],
+    "romania": ["romanian grocery", "eastern european grocery", "european market"],
+    "croatia": ["croatian grocery", "balkan grocery", "european market"],
+    "serbia": ["serbian grocery", "balkan grocery", "eastern european grocery"],
+    "bosnia": ["bosnian grocery", "balkan grocery", "halal grocery"],
+    "albania": ["albanian grocery", "balkan grocery", "mediterranean market"],
+    "armenia": ["armenian grocery", "middle eastern grocery", "mediterranean market"],
+    "russia": ["russian grocery", "eastern european grocery", "european deli"],
+    "ukraine": ["ukrainian grocery", "eastern european grocery", "european deli"],
+    # Middle East & Central Asia
+    "afghanistan": ["afghan grocery", "halal grocery", "middle eastern grocery"],
+    "egypt": ["egyptian grocery", "middle eastern grocery", "halal grocery"],
+    "iran": ["persian grocery", "middle eastern grocery", "halal grocery"],
+    "iraq": ["iraqi grocery", "middle eastern grocery", "halal grocery"],
+    "israel": ["kosher grocery", "israeli grocery", "middle eastern grocery"],
+    "syria": ["syrian grocery", "middle eastern grocery", "halal grocery"],
+    "uzbekistan": ["uzbek grocery", "halal grocery", "russian grocery"],
+    # Africa
+    "ethiopia": ["ethiopian grocery", "ethiopian market", "african grocery"],
+    "ghana": ["ghanaian grocery", "west african grocery", "african grocery"],
+    "kenya": ["kenyan grocery", "east african grocery", "african grocery"],
+    "morocco": ["moroccan grocery", "halal grocery", "middle eastern grocery"],
+    "somalia": ["somali grocery", "halal grocery", "east african grocery"],
+    "southafrica": ["south african shop", "african grocery", "british grocery"],
+    # Americas
+    "argentina": ["argentinian grocery", "south american grocery", "latin grocery"],
+    "brazil": ["brazilian market", "brazilian grocery", "latin grocery"],
+    "colombia": ["colombian grocery", "latin grocery", "latin american market"],
+    "cuba": ["cuban grocery", "cuban bakery", "latin grocery"],
+    "dominicanrepublic": ["dominican grocery", "latin grocery", "caribbean grocery"],
+    "ecuador": ["ecuadorian grocery", "latin grocery", "latin american market"],
+    "elsalvador": ["salvadoran grocery", "central american market", "latin grocery"],
+    "guatemala": ["guatemalan grocery", "central american market", "latin grocery"],
+    "haiti": ["haitian grocery", "caribbean grocery", "west indian grocery"],
+    "honduras": ["honduran grocery", "central american market", "latin grocery"],
+    "jamaica": ["jamaican grocery", "caribbean grocery", "west indian grocery"],
+    "peru": ["peruvian grocery", "latin grocery", "south american grocery"],
+    "venezuela": ["venezuelan grocery", "latin grocery", "latin american market"],
 }
 DEFAULT_QUERIES = ["grocery store", "supermarket", "international market"]
 
@@ -469,11 +548,38 @@ STORE_TYPE_QUERIES: dict[str, list[str]] = {
     "caribbean_grocery": ["caribbean grocery", "west indian grocery"],
     "african_grocery": ["african grocery", "west african grocery"],
     "european_grocery": ["european grocery", "polish grocery", "eastern european grocery"],
+    "latin_grocery": ["latin grocery", "latin american market", "central american market"],
+    "southeast_asian_grocery": ["southeast asian grocery", "asian supermarket"],
 }
 
 # Coarse mapping from a chain's metadata to the store-type tokens it represents.
 # Used to compute coverage (does this store carry items needing X store-type?) and to
 # decide whether a store qualifies as a "preferred" store for the active product context.
+_MAINSTREAM_STORE_TYPES = {"supermarket", "warehouse_club"}
+_FRESH_PROTEIN_RE = re.compile(
+    r"\b(chicken|beef|pork|lamb|mutton|goat|veal|turkey|duck|fish|salmon|tuna|cod|"
+    r"shrimp|prawns?|seafood|meat|bacon|sausage|ham)\b",
+    re.IGNORECASE,
+)
+
+
+def _store_carries(ing: "IngredientCoverage", store_types_set: set) -> bool:
+    """Whether a store plausibly stocks a recipe ingredient (recipe-coverage view)."""
+    ing_types = set(ing.preferred_store_types or [])
+    if not ing_types or (ing_types & store_types_set):
+        return True
+    # The model tags everyday staples (rice, produce, dairy, spices, oil) "supermarket" only,
+    # but full-line specialty grocers stock them too — without this, Patel Brothers scored
+    # 1/10 on biryani (just the saffron). Fresh meat/seafood is the exception: many specialty
+    # grocers (Patel Brothers included) don't sell it, halal grocers do.
+    is_specialty_grocer = bool(store_types_set - _MAINSTREAM_STORE_TYPES)
+    if is_specialty_grocer and (ing_types & _MAINSTREAM_STORE_TYPES):
+        if _FRESH_PROTEIN_RE.search(ing.name or ""):
+            return "halal_grocery" in store_types_set
+        return True
+    return False
+
+
 def _store_types_for_chain(chain: Optional[dict]) -> list[str]:
     if not chain:
         return []
@@ -556,10 +662,49 @@ def _store_types_from_name(display_name: str) -> list[str]:
         ("caribbean", "caribbean_grocery"),
         ("west indian", "caribbean_grocery"),
         ("african", "african_grocery"),
+        ("ethiopian", "african_grocery"),
+        ("somali", "african_grocery"),
+        ("ghanaian", "african_grocery"),
+        ("jamaican", "caribbean_grocery"),
+        ("haitian", "caribbean_grocery"),
         ("polish", "european_grocery"),
+        ("european", "european_grocery"),
+        ("russian", "european_grocery"),
+        ("ukrainian", "european_grocery"),
+        ("balkan", "european_grocery"),
+        ("romanian", "european_grocery"),
+        ("hungarian", "european_grocery"),
+        ("greek", "european_grocery"),
+        ("portuguese", "european_grocery"),
+        ("british", "european_grocery"),
+        ("irish", "european_grocery"),
+        ("scandinavian", "european_grocery"),
+        ("persian", "middle_eastern_grocery"),
+        ("armenian", "middle_eastern_grocery"),
+        ("afghan", "middle_eastern_grocery"),
+        ("mediterranean", "middle_eastern_grocery"),
+        ("latin", "latin_grocery"),
+        ("latino", "latin_grocery"),
+        ("hispanic", "latin_grocery"),
+        ("salvadoran", "latin_grocery"),
+        ("guatemalan", "latin_grocery"),
+        ("honduran", "latin_grocery"),
+        ("dominican", "latin_grocery"),
+        ("colombian", "latin_grocery"),
+        ("peruvian", "latin_grocery"),
+        ("ecuadorian", "latin_grocery"),
+        ("venezuelan", "latin_grocery"),
+        ("brazilian", "latin_grocery"),
+        ("cuban", "latin_grocery"),
+        ("cambodian", "southeast_asian_grocery"),
+        ("burmese", "southeast_asian_grocery"),
+        ("indonesian", "southeast_asian_grocery"),
+        ("malaysian", "southeast_asian_grocery"),
+        ("lao", "southeast_asian_grocery"),
     ]
     for kw, tok in keyword_to_type:
-        if kw in name and tok not in tokens:
+        # Match at a word start so "latin" doesn't fire on "Palatine" or "thai" on "Mathai".
+        if tok not in tokens and re.search(r"\b" + re.escape(kw.strip()), name):
             tokens.append(tok)
     return tokens
 
@@ -760,8 +905,7 @@ async def stores_nearby(
         coverage_items: list[str] = []
         if pc and pc.needed_items:
             for ing in pc.needed_items:
-                ing_types = set(ing.preferred_store_types or [])
-                if not ing_types or (ing_types & store_types_set):
+                if _store_carries(ing, store_types_set):
                     coverage_matched += 1
                     coverage_items.append(ing.name)
 

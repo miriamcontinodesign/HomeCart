@@ -4,38 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project context
 
-HomeCart (formerly "Cartographer" — the repo dir name still reflects the old brand) is a hackathon-won, Android-only React Native app that helps immigrants navigate US grocery shopping. Three flows: **Magic Lens** scan (camera → cultural equivalent JSON), **Recipe Importer** (dish name → ingredient list with availability classification), **Cultural Map** (Google Places with cuisine + product-aware ranking). The hackathon is done; the repo is now in **polish-and-ship** mode targeting a LinkedIn launch via Android sideload.
+HomeCart (formerly "Cartographer") is a hackathon-won **web app** (React Native code rendered via Expo + react-native-web) that helps immigrants navigate US grocery shopping. Three flows: **Magic Lens** scan (photo upload → cultural equivalent JSON), **Recipe Importer** (dish name → ingredient list with availability classification), **Cultural Map** (Google Places with cuisine + product-aware ranking). It started as an Android-only app; the Android/EAS build setup was removed in favour of web-only.
 
-Distribution model: signed APKs from EAS Build (no Play Store). Two build profiles live in `app/frontend/eas.json` — `preview` (shared-quota path, uses operator's OpenRouter key, 10 scans + 3 recipes per user per day) and `byok-preview` (`EXPO_PUBLIC_BYOK_ONLY=true`, blocks main UI until user supplies their own LLM key). One bundle ID (`com.homecart.app`) for both.
+Distribution model: static web build hosted on Vercel. Two usage modes: shared quota (operator's OpenRouter key, 10 scans + 3 recipes per user per day) and BYOK-only (`EXPO_PUBLIC_BYOK_ONLY=true` at build time, blocks the main UI until the user supplies their own LLM key).
 
 ## High-level architecture
 
-Three deployable surfaces, one Postgres schema, one budget envelope to protect:
+Two deployable surfaces plus one Postgres schema, one budget envelope to protect:
 
-**`app/backend/`** — FastAPI on Render free tier at `https://homecart-backend.onrender.com`. Three real endpoints:
+**`app/backend/`** — FastAPI on Render free tier (Blueprint service `homecart-backend`; its public URL goes in the frontend's `EXPO_PUBLIC_API_URL`). Three real endpoints:
 - `POST /scan` — vision LLM call returning structured JSON about a product image
 - `POST /recipe` — text LLM call returning structured JSON ingredients for a dish
 - `POST /stores/nearby` — Google Places (New) Text Search with cuisine + product-aware ranking
 
 UptimeRobot pings `/healthz` every 5 min to fight Render's 15-min idle spin-down. Render reads `app/backend/render.yaml` as a Blueprint on push to `main`.
 
-**`app/frontend/`** — Expo SDK 54 / React Native 0.81 / `react-native-maps` 1.27 (1.20 had the Android view-marker rendering bug). New Architecture is enabled in `app.json`; `app.config.js` deliberately does NOT override it. Tab navigator with 5 tabs (`Home`, `Map`, `MagicLens` center FAB, `List`→labelled "Recipes", `Profile`). `App.tsx` gates rendering on: auth state → profile loaded → onboarding complete → (if `BYOK_ONLY`) BYOK configured → MainTabNavigator.
+**`app/frontend/`** — Expo SDK 54 / React Native 0.81 rendered on web via `react-native-web`, built with `expo export --platform web` into `dist/` and served by Vercel (`vercel.json`; Vercel project root = `app/frontend`). The map uses `@vis.gl/react-google-maps` (Google Maps JavaScript API, advanced markers → needs a Map ID). Magic Lens uses an `<input type="file" capture="environment">` and downscales photos to ≤1280px in a canvas before upload. Tab navigator with 5 tabs (`Home`, `Map`, `MagicLens` center FAB, `List`→labelled "Recipes", `Profile`), inside a centered max-640px column (`AppFrame` in `App.tsx`). `App.tsx` gates rendering on: auth state → profile loaded → onboarding complete → (if `BYOK_ONLY`) BYOK configured → MainTabNavigator.
 
 **`app/migrations/`** — Numbered SQL files (`001` → `005`) applied manually to Supabase via the SQL editor. There is no migration runner; commit order is human-enforced. `005_daily_usage.sql` is the rate-limit table; **must be applied to Supabase before the backend's `_enforce_daily_quota` will work**.
 
 ### Critical cross-cutting flows
 
-**BYOK is LLM-only.** `app/frontend/lib/api.ts` `apiFetch()` attaches `X-User-LLM-Key`, `X-User-LLM-Vision-Model`, `X-User-LLM-Text-Model`, `X-User-Id` to every backend call. Values come from SecureStore (hardware-backed: Android Keystore / iOS Keychain) via `lib/byok.ts`. Backend `get_byok` dependency in `main.py` extracts them; `providers.py` routes by key prefix (`sk-ant-` → Anthropic native Messages API, `sk-or-` → OpenRouter, `sk-` → OpenAI direct). Maps/Tavily/Firecrawl are **operator-managed** — older builds had BYOK fields for them and forwarded `X-User-GCP-Key` etc., but those proved to be foot-guns (user-supplied Maps keys were typically Android-restricted, which fails server-side). The frontend no longer collects those keys and the backend ignores the headers if a stale build still sends them.
+**BYOK is LLM-only.** `app/frontend/lib/api.ts` `apiFetch()` attaches `X-User-LLM-Key`, `X-User-LLM-Vision-Model`, `X-User-LLM-Text-Model`, `X-User-Id` to every backend call. Values come from browser `localStorage` via `lib/byok.ts` (weaker than a hardware keystore — the Settings copy warns users not to save keys on shared computers). Backend `get_byok` dependency in `main.py` extracts them; `providers.py` routes by key prefix (`sk-ant-` → Anthropic native Messages API, `sk-or-` → OpenRouter, `sk-` → OpenAI direct). Maps/Tavily/Firecrawl are **operator-managed** — older builds had BYOK fields for them and forwarded `X-User-GCP-Key` etc., but those proved to be foot-guns (user-supplied Maps keys were typically Android-restricted, which fails server-side). The frontend no longer collects those keys and the backend ignores the headers if a stale build still sends them.
 
 **Single source of truth for LLM provider = key prefix.** Never reintroduce an explicit "provider override" UI (an earlier version had one). The backend ALWAYS routes by `detect_provider(key)`; a UI override would silently diverge the model picker from the routing — e.g. user picks "Anthropic" provider but pastes an `sk-or-` key, sees Anthropic models, picks Claude Haiku (Anthropic-native ID), backend sends that ID to OpenRouter which only knows it as `anthropic/claude-haiku-4.5`, silent 404. `SettingsScreen.tsx` derives the provider from `detectLLMProvider(keys.llmKey)` and filters the model picker accordingly. Models are reset when the detected provider changes — see `onLlmKeyChange`.
 
 **Parameter normalization** in `providers.py` `_normalize_openai_body()` — OpenAI reasoning models (o-series, all GPT-5.x matching the regex `(^|/)(o[1-9](-|$)|gpt-5(\.|$|-))`) reject `max_tokens` (use `max_completion_tokens`) and `temperature`; Gemini models reject `frequency_penalty`, `presence_penalty`, `n`, `logprobs`. **Never bypass this normalizer** when adding new providers or models.
 
-**Rate limiting** — `main.py` `_enforce_daily_quota(user_id, kind)` is called BEFORE every LLM call, but ONLY when `byok.llm_key` is empty. BYOK users have unlimited usage (they pay their own provider). Reads + upserts the `daily_usage` table; raises 429 with `{error: "quota_exceeded", suggest_byok: true, ...}` when over. Frontend `MagicLensScreen.tsx` and `ListScreen.tsx` catch 429 and show a friendly modal pointing the user to Settings.
+**Rate limiting** — `main.py` `_enforce_daily_quota(user_id, kind)` is called BEFORE every LLM call, but ONLY when `byok.llm_key` is empty. BYOK users have unlimited usage (they pay their own provider). Reads + upserts the `daily_usage` table; raises 429 with `{error: "quota_exceeded", suggest_byok: true, ...}` when over. Frontend `MagicLensScreen.tsx` and `ListScreen.tsx` catch 429 and show a friendly alert pointing the user to Settings.
 
-**Provider defaults vs user-selected models** — `PROVIDER_DEFAULTS` in `providers.py` defines the fallback model per (provider, kind=vision|text). User-supplied `X-User-LLM-Vision-Model` / `X-User-LLM-Text-Model` headers override these. Current free-tier defaults: `openai/gpt-5.4-nano` (vision) + `deepseek/deepseek-v4-flash` (text) via OpenRouter — chosen for ~13× cost reduction vs Claude defaults without sacrificing reliability on cultural-grocery classification.
+**Provider defaults vs user-selected models** — `PROVIDER_DEFAULTS` in `providers.py` defines the fallback model per (provider, kind=vision|text). User-supplied `X-User-LLM-Vision-Model` / `X-User-LLM-Text-Model` headers override these. Code defaults: `openai/gpt-5.4-nano` (vision) + `deepseek/deepseek-v4-flash` (text) via OpenRouter. The operator path can override them with `LLM_VISION_MODEL` / `LLM_TEXT_MODEL` and add comma-separated backups in `LLM_VISION_FALLBACKS` / `LLM_TEXT_FALLBACKS`; `call_llm` tries each in order on errors, rate limits or empty replies (not on 401). BYOK calls never fall back. The model output's `preferred_store_types` is coerced to a list by `_coerce_store_types` in `main.py` — weaker models sometimes return a bare string.
 
-**Store ranking** — `main.py` `stores_nearby` is product-context-aware. `availability_breadth` ∈ `{mainstream, both, specialty_only}` determines weighting: specialty-only products penalize non-specialty stores by 60; mainstream products drop specialty-tier bonuses; "both" sorts pure-distance-first with authenticity as tiebreaker. Recipe coverage flow ranks by `(matched_items DESC, distance ASC)`.
+**Store ranking** — `main.py` `stores_nearby` is product-context-aware. `availability_breadth` ∈ `{mainstream, both, specialty_only}` determines weighting: specialty-only products penalize non-specialty stores by 60; mainstream products drop specialty-tier bonuses; "both" sorts pure-distance-first with authenticity as tiebreaker. Recipe coverage flow sorts by distance with coverage as tiebreaker; `_store_carries` decides per-ingredient coverage and also credits specialty grocers with everyday staples the model tagged `supermarket` (except fresh meat/seafood, which only halal grocers get). Coverage counts are baked into the 24h `store_cache` rows, so clear that table after changing coverage logic.
 
 ## Common commands
 
@@ -43,7 +43,7 @@ UptimeRobot pings `/healthz` every 5 min to fight Render's 15-min idle spin-down
 
 ```bash
 source venv/bin/activate                                  # activate the existing venv
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload      # local dev (LAN-accessible for device testing)
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload      # local dev
 python seed_chains.py                                     # populate chain_personas table (idempotent)
 python seed_equivalences.py                               # populate equivalences seed data
 ```
@@ -55,25 +55,12 @@ There are no tests in this repo — `_classify_chain`, `_haversine`, and the par
 ### Frontend (run from `app/frontend/`)
 
 ```bash
-npx expo start --dev-client          # Metro bundler; for use with a dev-build APK on device
-npx expo start --tunnel              # if LAN routing is broken; serves over ngrok
+npm start                            # expo start --web on http://localhost:8081
+npm run build                        # static export to dist/ (what Vercel runs)
 npx tsc --noEmit                     # type-check (note: @expo/vector-icons resolution errors are pre-existing tsc-only noise; ignore)
 ```
 
-### EAS Build (run from `app/frontend/`)
-
-The EAS CLI has a known LRU constructor bug at v17+. **Always pin to v16:**
-
-```bash
-npx --yes eas-cli@16 build --profile development --platform android   # dev build with LAN backend
-npx --yes eas-cli@16 build --profile preview      --platform android  # shared-quota APK (Render backend, rate-limited)
-npx --yes eas-cli@16 build --profile byok-preview --platform android  # BYOK-only APK (LinkedIn distribution)
-npx --yes eas-cli@16 build:list                                       # find install URLs for past builds
-npx --yes eas-cli@16 env:list   --environment development             # see EAS-side env vars
-npx --yes eas-cli@16 env:create --environment development --name GOOGLE_MAPS_API_KEY --visibility sensitive
-```
-
-Local keystore lives at `app/frontend/credentials/keystore.jks` (gitignored) — referenced by `credentials.json`. **If lost, you can never push updates to existing installs.** Back it up.
+`.env` lives at `app/frontend/.env` (gitignored; see `.env.example`). Every `EXPO_PUBLIC_*` value is inlined into the public JS bundle at build time — only the Supabase anon key, the backend URL and a referrer-restricted Maps browser key belong there. The same vars must be set in the Vercel project settings for production builds.
 
 ### Migrations
 
@@ -81,13 +68,13 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 
 ### Production deploy
 
-`git push origin main` triggers Render auto-deploy via the Blueprint. The `origin` remote points at `https://github.com/p-kowadkar/HomeCart`. (The historical dual-remote setup with a separate `homecart` remote and a hackathon team's `saumaykilla/Cartographer` was consolidated when the project moved off the Linux laptop — there's only one remote now.)
+`git push origin main` triggers the Render backend deploy via the Blueprint and the Vercel frontend deploy, provided both services are connected to this repo. After the first Vercel deploy, set Supabase → Authentication → URL Configuration → Site URL to the Vercel domain, add that domain to the Maps browser key's referrer restrictions, and set `EXPO_PUBLIC_API_URL` in Vercel to the Render URL. The `origin` remote points at `https://github.com/miriamcontinodesign/HomeCart`.
 
 ## Conventions and gotchas
 
-**Single git remote on `main`.** `origin` → `github.com/p-kowadkar/HomeCart`, default branch `main`. Push with `git push origin main`. Older memory files mention a dual-remote setup (`origin` on `dev` + `homecart` on `main`); that was the hackathon-era topology and no longer applies.
+**Single git remote on `main`.** `origin` → `github.com/miriamcontinodesign/HomeCart`, default branch `main`. Push with `git push origin main`.
 
-**Repo dir vs product name.** The folder is still `Cartographer/`. The bundle ID, EAS slug, and display name are `homecart` / `HomeCart`. Don't rename the folder — too many tools (EAS, Render, IDE workspace) have absolute paths baked in.
+**Product name.** The repo folder is `HomeCart/`; the Expo slug and display name are `homecart` / `HomeCart`. "Cartographer" is the hackathon-era name and still appears in `prd/` and `plan/`.
 
 **No backend-side migration runner.** When you add a new `.sql` file to `app/migrations/`, you must apply it to Supabase manually before deploying backend code that depends on it. The `daily_usage` rate-limit gate WILL crash with `relation "daily_usage" does not exist` if migration 005 isn't applied yet.
 
@@ -95,13 +82,13 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 
 **Reasoning model parameters.** All GPT-5.x and o-series models require `max_completion_tokens` (not `max_tokens`) and reject `temperature`. The regex in `providers.py:_OPENAI_REASONING_RE` catches them — update the regex, not the call sites, when new families ship.
 
-**SecureStore can throw at startup.** `App.tsx` calls `loadByokKeys()` when `BYOK_ONLY=true`; if SecureStore fails (corrupted entry, expo-secure-store version mismatch, etc.) it can crash on mount. If debugging a launch crash, check `adb logcat | grep -i "homecart\|reactnative\|securestore"` for the underlying error before assuming a JS bug. The bundled Android Studio adb on Windows lives at `D:\Program_Files\Android_studio_components\platform-tools\adb.exe` if it isn't on PATH.
+**`Alert.alert` is a no-op on web.** Import `Alert` from `lib/alert.ts` (window.alert / window.confirm shim), never from `react-native`, or error and confirmation dialogs silently disappear.
 
-**Supabase session uses AsyncStorage, NOT SecureStore.** `lib/supabase.ts` configures the auth client with `@react-native-async-storage/async-storage` because Supabase sessions (JWT + refresh + metadata) routinely exceed the 2048-byte cap that Android's Keystore enforces on SecureStore payloads. SecureStore stays in `lib/byok.ts` for the BYOK keys (always <200 bytes). If you re-route the session through SecureStore, expect silent persistence failures on some devices and a re-login on every cold start.
+**Two Google Maps keys.** The backend's `GOOGLE_MAPS_API_KEY` (Places API (New), server-side, no application restriction) and the frontend's `EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` (Maps JavaScript API, HTTP-referrer restricted). Never put the backend key in the frontend `.env` — it would ship to every visitor unrestricted.
 
-**EAS env vars are separate from local `.env`.** EAS Build runs on EAS servers and does NOT read your local `.env` file — only env vars defined in (a) each profile's `env` block in `eas.json` or (b) the EAS-cloud environment for that profile (`production` / `preview` / `development`). The `byok-preview` and `preview` profiles both target the `preview` EAS environment. If you switch machines, re-init the project, or otherwise lose the cloud env state, EAS-built APKs will crash on launch with errors like `Error: supabaseUrl is required` because `process.env.EXPO_PUBLIC_*` is empty in the bundle. Fix: `npx --yes eas-cli@16 env:push <environment> --path .env`. Required for non-development builds: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `GOOGLE_MAPS_API_KEY` (last one is read at prebuild time by `app.config.js`, not exposed to JS). Verify with `eas env:list --environment preview`.
+**Supabase session lives in localStorage** (`@react-native-async-storage/async-storage` is localStorage-backed on web). `detectSessionInUrl: true` lets the PKCE confirmation link sign the user in when it opens in the same browser that signed up.
 
-**Free-tier API ceilings.** OpenRouter spending cap is the real safety net (set at $20). Google Maps free tier is generous ($200/mo, ~6000 Places searches). Render free tier: 750 hrs/mo + 15-min idle spin-down (UptimeRobot pings every 5 min). Supabase free tier: 50k MAU, 500MB DB.
+**Free-tier API ceilings.** OpenRouter spending cap is the real safety net (set at $20). Google Maps free tier is generous ($200/mo, ~6000 Places searches; Maps JavaScript map loads are billed separately). Render free tier: 750 hrs/mo + 15-min idle spin-down (UptimeRobot pings every 5 min). Supabase free tier: 50k MAU, 500MB DB.
 
 **Hackathon-era code in `prd/` and `plan/`.** These are historical design docs from the hackathon, not current spec. Don't update them when shipping new features; they're frozen artifacts.
 
@@ -115,3 +102,4 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 | New rate-limit kind | Add column to `daily_usage`, extend `_enforce_daily_quota`, add `SCAN_DAILY_LIMIT`-style env var |
 | Map ranking tweak | `app/backend/main.py` `stores_nearby` (~ line 670), reuses `_classify_chain` + `_haversine` + cache helpers in the same file |
 | New tab / screen | `app/frontend/App.tsx` `MainTabNavigator`, add screen file to `screens/`, share `theme/ThemeContext` for colors |
+| Map UI | `app/frontend/screens/MapScreen.tsx` (`@vis.gl/react-google-maps`; `fitTo` / `panTo` helpers wrap the map instance) |

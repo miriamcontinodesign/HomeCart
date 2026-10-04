@@ -19,7 +19,7 @@ rejects penalties; Anthropic uses a different shape entirely.
 from __future__ import annotations
 import os
 import re
-from typing import Optional
+from typing import Callable, Optional
 import httpx
 from fastapi import HTTPException
 
@@ -30,6 +30,10 @@ ENV_LLM_API_KEY = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("LLM_AP
 # Free-tier defaults are intentionally cheap — protect the operator's wallet when non-BYOK users hit /scan and /recipe.
 ENV_VISION_MODEL = os.environ.get("LLM_VISION_MODEL", "openai/gpt-5.4-nano")
 ENV_TEXT_MODEL = os.environ.get("LLM_TEXT_MODEL", "deepseek/deepseek-v4-flash")
+# Comma-separated backups tried in order when the primary model errors, is rate-limited, or returns nothing.
+# Operator path only — BYOK users get exactly the model they picked.
+ENV_VISION_FALLBACKS = [m.strip() for m in os.environ.get("LLM_VISION_FALLBACKS", "").split(",") if m.strip()]
+ENV_TEXT_FALLBACKS = [m.strip() for m in os.environ.get("LLM_TEXT_FALLBACKS", "").split(",") if m.strip()]
 
 # OpenRouter analytics headers — harmless, helps with leaderboard listing.
 LLM_APP_REFERRER = os.environ.get("LLM_APP_REFERRER", "https://homecart.app")
@@ -115,7 +119,12 @@ async def _post_openai_shape(base_url: str, key: str, model: str, messages: list
         r = await client.post(f"{base_url}/chat/completions", headers=headers, json=body)
         if r.status_code >= 400:
             raise HTTPException(r.status_code, f"LLM gateway error: {r.text[:300]}")
-        return r.json()["choices"][0]["message"]["content"]
+        data = r.json()
+        content = (data.get("choices") or [{}])[0].get("message", {}).get("content")
+        if not content:
+            # Free/reasoning models occasionally return an empty message or an in-body error.
+            raise HTTPException(502, f"LLM returned no content: {str(data)[:300]}")
+        return content
 
 
 def _anthropic_messages_from_openai(messages: list) -> list:
@@ -174,8 +183,14 @@ async def call_llm(
     kind: str = "text",
     override_key: Optional[str] = None,
     override_model: Optional[str] = None,
+    validate: Optional[Callable[[str], object]] = None,
 ) -> str:
-    """Single entry point. Routes by key prefix; uses override_model when supplied."""
+    """Single entry point. Routes by key prefix; uses override_model when supplied.
+
+    `validate` (operator fallback chain only) is called on each reply; if it raises, the
+    reply counts as a failure and the next model is tried — free models sometimes return
+    truncated or malformed JSON.
+    """
     if override_key:
         provider = detect_provider(override_key)
         cfg = PROVIDER_DEFAULTS[provider]
@@ -186,8 +201,37 @@ async def call_llm(
 
     if not ENV_LLM_API_KEY:
         raise HTTPException(503, "LLM API key not configured on the server (and no user key supplied)")
-    model = override_model or (ENV_VISION_MODEL if kind == "vision" else ENV_TEXT_MODEL)
-    return await _post_openai_shape(ENV_LLM_BASE_URL, ENV_LLM_API_KEY, model, messages, max_tokens)
+    if override_model:
+        models = [override_model]
+    elif kind == "vision":
+        models = [ENV_VISION_MODEL, *ENV_VISION_FALLBACKS]
+    else:
+        models = [ENV_TEXT_MODEL, *ENV_TEXT_FALLBACKS]
+
+    last_error: Optional[HTTPException] = None
+    for model in models:
+        try:
+            content = await _post_openai_shape(ENV_LLM_BASE_URL, ENV_LLM_API_KEY, model, messages, max_tokens)
+            if validate:
+                try:
+                    validate(content)
+                except Exception as e:
+                    print(f"[llm] {model} returned an unusable reply: {e}")
+                    last_error = HTTPException(502, f"AI response parse error: {e}")
+                    continue
+            return content
+        except HTTPException as e:
+            if e.status_code == 401:
+                raise  # bad operator key — every model would fail the same way
+            print(f"[llm] {model} failed ({e.status_code}): {str(e.detail)[:200]}")
+            last_error = e
+        except httpx.HTTPError as e:
+            print(f"[llm] {model} failed (network): {e!r}")
+            last_error = HTTPException(504, f"LLM network error: {e!r}")
+    if len(models) > 1:
+        # Don't pass an upstream 429 through: the app reserves 429 for the daily quota.
+        raise HTTPException(503, "All AI models are busy right now. Please try again in a minute.")
+    raise last_error
 
 
 async def llm_vision(
@@ -196,6 +240,7 @@ async def llm_vision(
     max_tokens: int = 1500,
     override_key: Optional[str] = None,
     override_model: Optional[str] = None,
+    validate: Optional[Callable[[str], object]] = None,
 ) -> str:
     messages = [{
         "role": "user",
@@ -205,7 +250,7 @@ async def llm_vision(
         ],
     }]
     return await call_llm(messages, max_tokens=max_tokens, kind="vision",
-                          override_key=override_key, override_model=override_model)
+                          override_key=override_key, override_model=override_model, validate=validate)
 
 
 async def llm_text(
@@ -213,7 +258,8 @@ async def llm_text(
     max_tokens: int = 1500,
     override_key: Optional[str] = None,
     override_model: Optional[str] = None,
+    validate: Optional[Callable[[str], object]] = None,
 ) -> str:
     messages = [{"role": "user", "content": prompt}]
     return await call_llm(messages, max_tokens=max_tokens, kind="text",
-                          override_key=override_key, override_model=override_model)
+                          override_key=override_key, override_model=override_model, validate=validate)

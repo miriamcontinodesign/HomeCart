@@ -1,25 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 
-const { width } = Dimensions.get('window');
-
-const COUNTRY_FLAG: Record<string, string> = {
-  india: '🇮🇳', pakistan: '🇵🇰', bangladesh: '🇧🇩', srilanka: '🇱🇰', nepal: '🇳🇵',
-  china: '🇨🇳', japan: '🇯🇵', korea: '🇰🇷', taiwan: '🇹🇼',
-  vietnam: '🇻🇳', thailand: '🇹🇭', philippines: '🇵🇭', indonesia: '🇮🇩', malaysia: '🇲🇾', singapore: '🇸🇬',
-  italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', portugal: '🇵🇹', greece: '🇬🇷', germany: '🇩🇪', poland: '🇵🇱',
-  turkey: '🇹🇷', russia: '🇷🇺', ukraine: '🇺🇦',
-  iran: '🇮🇷', lebanon: '🇱🇧', israel: '🇮🇱', egypt: '🇪🇬',
-  nigeria: '🇳🇬', ghana: '🇬🇭', ethiopia: '🇪🇹', morocco: '🇲🇦', southafrica: '🇿🇦', kenya: '🇰🇪',
-  mexico: '🇲🇽', brazil: '🇧🇷', argentina: '🇦🇷', peru: '🇵🇪', colombia: '🇨🇴', venezuela: '🇻🇪',
-  cuba: '🇨🇺', jamaica: '🇯🇲', usa: '🇺🇸',
-};
 
 interface RecentScan {
   id: string;
@@ -64,18 +52,16 @@ export default function HomeScreen({ navigation }: any) {
   }, [user]);
 
   const firstName = (user?.user_metadata?.full_name || profile?.full_name || 'there').split(' ')[0];
-  const flag = COUNTRY_FLAG[profile?.home_country || ''] || '🌍';
+  const flag = countryFlag(profile?.home_country);
   const cuisineLabel = profile?.home_region
     ? `${profile.home_region} cuisine`
     : profile?.home_country
-    ? `${profile.home_country.charAt(0).toUpperCase() + profile.home_country.slice(1)} cuisine`
+    ? `${countryName(profile.home_country)} cuisine`
     : 'your cuisine';
 
   const QUICK_ACTIONS = [
-    { id: 'scan', label: 'Scan Label', icon: 'camera-iris' as const, color: '#3B82F6', onPress: () => navigation?.navigate('MagicLens') },
     { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: '#10B981', onPress: () => navigation?.navigate('List') },
     { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: '#F472B6', onPress: () => navigation?.navigate('Map') },
-    { id: 'profile', label: 'Profile', icon: 'account-circle' as const, color: '#A855F7', onPress: () => navigation?.navigate('Profile') },
   ];
 
   const scoreColor = (s: number) => s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow;
@@ -104,15 +90,15 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.heroLeft}>
             <Text style={styles.heroEyebrow}>MAGIC LENS</Text>
             <Text style={styles.heroTitle}>Scan any product</Text>
-            <Text style={styles.heroSub}>Translate it to {cuisineLabel.toLowerCase()} in seconds</Text>
+            <Text style={styles.heroSub}>Translate it to {cuisineLabel} in seconds</Text>
           </View>
           <View style={styles.heroIcon}>
             <MaterialCommunityIcons name="scan-helper" size={56} color="#fff" />
           </View>
         </TouchableOpacity>
 
-        {/* Quick Actions Grid */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Quick Actions</Text>
+        {/* More actions (scanning lives in the hero card above, Profile in the tab bar) */}
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>More actions</Text>
         <View style={styles.actionGrid}>
           {QUICK_ACTIONS.map(action => (
             <TouchableOpacity
@@ -193,10 +179,10 @@ export default function HomeScreen({ navigation }: any) {
             <View style={{ flex: 1, marginLeft: 14 }}>
               <Text style={[styles.identityLabel, { color: colors.textTertiary }]}>YOUR CUISINE PROFILE</Text>
               <Text style={[styles.identityValue, { color: colors.textPrimary }]} numberOfLines={1}>
-                {profile.home_country.charAt(0).toUpperCase() + profile.home_country.slice(1)}
+                {countryName(profile.home_country)}
                 {profile.home_region ? ` · ${profile.home_region}` : ''}
               </Text>
-              {profile.dietary_preferences?.length > 0 && (
+              {!!profile.dietary_preferences?.length && (
                 <Text style={[styles.identityDiet, { color: colors.textSecondary }]} numberOfLines={1}>
                   {profile.dietary_preferences.join(' · ')}
                 </Text>
@@ -240,7 +226,9 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 10 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   actionCard: {
-    width: (width - 52) / 2,
+    // Two per row inside the app column (window width would overflow the 640px frame).
+    flexBasis: '40%',
+    flexGrow: 1,
     padding: 18,
     borderRadius: 16,
     borderWidth: 1,

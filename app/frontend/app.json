@@ -4,44 +4,24 @@
     "slug": "homecart",
     "scheme": "homecart",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.homecart.app"
-    },
-    "android": {
-      "package": "com.homecart.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
-    },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "HomeCart",
+      "shortName": "HomeCart",
+      "themeColor": "#0A0E14",
+      "backgroundColor": "#0A0E14"
     },
     "plugins": [
-      "expo-secure-store",
       "expo-web-browser",
       [
-        "expo-camera",
-        { "cameraPermission": "Allow HomeCart to access your camera to scan grocery products." }
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow HomeCart to use your location to find nearby stores."
+        }
       ]
-    ],
-    "owner": "pkowadkar",
-    "extra": {
-      "eas": {
-        "projectId": "e75b1978-b262-4c9e-ad3b-12a0ecf461f3"
-      }
-    }
+    ]
   }
 }
