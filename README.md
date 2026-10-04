@@ -6,7 +6,7 @@ HomeCart helps immigrants and travelers translate familiar food products into th
 
 Started as a hackathon project (the team won 🥇) as an Android app, and since rebuilt as a **web app** that runs in any modern browser, on desktop or phone.
 
-**Live demo:** _coming soon_
+**Live demo:** [homecart-frontend-five.vercel.app](https://homecart-frontend-five.vercel.app/)
 
 ---
 
@@ -388,7 +388,7 @@ Render's free tier sleeps after 15 minutes without traffic; the first request af
 - [x] BYOK for LLM providers
 - [x] OpenRouter gateway with a free-model fallback chain
 - [x] Web app (Expo web + Google Maps JavaScript API)
-- [ ] Deploy: backend on Render, frontend on Vercel
+- [x] Deploy: backend on Render, frontend on Vercel
 - [ ] Tavily fallback for thin-metro store discovery
 - [ ] Firecrawl enrichment of `ai_tip` with "where to buy" data
 - [ ] App icon + branding refresh
