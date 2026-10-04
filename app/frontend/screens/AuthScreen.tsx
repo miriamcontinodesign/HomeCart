@@ -25,7 +25,13 @@ export default function AuthScreen() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name } },
+          options: {
+            data: { full_name: name },
+            // Send the confirmation link back to whichever deployment the user signed up on
+            // (live site or localhost). Must be listed in Supabase → Auth → Redirect URLs,
+            // otherwise Supabase falls back to the project's Site URL.
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         if (!data.session) {

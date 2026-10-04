@@ -11,6 +11,9 @@ import { API_URL } from '../lib/api';
 
 const SHOW_AFTER_MS = 1200;   // don't flash the pill if the server is already up
 const RETRY_EVERY_MS = 5000;
+// Render can hold a request open while it boots, and mobile browsers may not time it out
+// for minutes — cap each ping so one hung request can't keep the pill up forever.
+const REQUEST_TIMEOUT_MS = 15000;
 const GIVE_UP_AFTER_MS = 120000;
 
 type Status = 'checking' | 'waking' | 'ready' | 'hidden';
@@ -21,31 +24,47 @@ export default function ServerWakeIndicator() {
 
   useEffect(() => {
     let cancelled = false;
+    let controller: AbortController | null = null;
     const started = Date.now();
     const showTimer = setTimeout(() => {
       if (!cancelled) setStatus(s => (s === 'checking' ? 'waking' : s));
     }, SHOW_AFTER_MS);
+    // Absolute deadline, independent of any in-flight request.
+    const giveUpTimer = setTimeout(() => {
+      cancelled = true;
+      controller?.abort();
+      setStatus('hidden');  // give up quietly; screens show their own errors
+    }, GIVE_UP_AFTER_MS);
 
     const ping = async () => {
       while (!cancelled && Date.now() - started < GIVE_UP_AFTER_MS) {
+        controller = new AbortController();
+        const abortTimer = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
         try {
-          const res = await fetch(`${API_URL}/healthz`, { cache: 'no-store' });
+          const res = await fetch(`${API_URL}/healthz`, { cache: 'no-store', signal: controller.signal });
           if (res.ok) {
             if (cancelled) return;
+            clearTimeout(giveUpTimer);
             setStatus(s => (s === 'waking' ? 'ready' : 'hidden'));
             setTimeout(() => !cancelled && setStatus('hidden'), 1500);
             return;
           }
         } catch {
-          // Server still asleep (connection refused / gateway error) — retry below.
+          // Server still asleep, gateway error, or this attempt timed out — retry below.
+        } finally {
+          clearTimeout(abortTimer);
         }
         await new Promise(r => setTimeout(r, RETRY_EVERY_MS));
       }
-      if (!cancelled) setStatus('hidden');  // give up quietly; screens show their own errors
     };
     ping();
 
-    return () => { cancelled = true; clearTimeout(showTimer); };
+    return () => {
+      cancelled = true;
+      controller?.abort();
+      clearTimeout(showTimer);
+      clearTimeout(giveUpTimer);
+    };
   }, []);
 
   if (status !== 'waking' && status !== 'ready') return null;
