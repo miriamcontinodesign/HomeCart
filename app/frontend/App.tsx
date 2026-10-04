@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ServerWakeIndicator from './components/ServerWakeIndicator';
 import { NavigationContainer } from '@react-navigation/native';
 import { DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -194,6 +195,7 @@ function AppFrame({ children }: { children: React.ReactNode }) {
     <View style={[styles.frameOuter, { backgroundColor: colors.bg }]}>
       <View style={[styles.frameInner, { backgroundColor: colors.bg, borderColor: colors.border }]}>
         {children}
+        <ServerWakeIndicator />
       </View>
     </View>
   );
