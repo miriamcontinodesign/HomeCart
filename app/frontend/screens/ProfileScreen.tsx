@@ -33,41 +33,23 @@ export default function ProfileScreen() {
           {!!email && <Text style={[styles.email, { color: colors.textSecondary }]}>{email}</Text>}
         </View>
 
-        {/* Cuisine identity card */}
-        <View style={[styles.cuisineCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={styles.flagLarge}>{flag}</Text>
-          <Text style={[styles.country, { color: colors.textPrimary }]}>{country}</Text>
-          {!!profile?.home_region && (
-            <Text style={[styles.region, { color: colors.textSecondary }]}>{profile.home_region}</Text>
-          )}
-          <TouchableOpacity
-            onPress={() => setCountryOpen(true)}
-            style={[styles.changeButton, { borderColor: colors.border }]}
-          >
-            <MaterialCommunityIcons name="pencil-outline" size={14} color={colors.primary} />
-            <Text style={[styles.changeText, { color: colors.primary }]}>Change country</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Profile info section */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>YOUR PROFILE</Text>
 
         <InfoRow
-          icon="translate"
-          label="Preferred Language"
-          value={profile?.preferred_language || 'English'}
+          icon="earth"
+          label="Nationality"
+          value={profile?.home_country
+            ? `${flag} ${country}${profile.home_region ? ` · ${profile.home_region}` : ''}`
+            : 'Not set'}
+          onPress={() => setCountryOpen(true)}
+          accessibilityLabel="Change your nationality"
           colors={colors}
         />
         <InfoRow
           icon="leaf"
-          label="Dietary Preferences"
+          label="Dietary Restrictions"
           value={profile?.dietary_preferences?.length ? profile.dietary_preferences.join(', ') : 'None'}
-          colors={colors}
-        />
-        <InfoRow
-          icon="food-variant"
-          label="Cuisines"
-          value={profile?.home_cuisines?.length ? profile.home_cuisines.join(', ') : 'Not set'}
           colors={colors}
         />
 
@@ -100,6 +82,12 @@ export default function ProfileScreen() {
 
         {/* Settings (API keys / BYOK) */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary, marginTop: 28 }]}>SETTINGS</Text>
+        <InfoRow
+          icon="translate"
+          label="Preferred Language"
+          value={profile?.preferred_language || 'English'}
+          colors={colors}
+        />
         <TouchableOpacity
           onPress={() => setSettingsOpen(true)}
           style={[styles.settingsRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -163,12 +151,12 @@ export default function ProfileScreen() {
 }
 
 function InfoRow({
-  icon, label, value, colors,
+  icon, label, value, colors, onPress, accessibilityLabel,
 }: {
-  icon: any; label: string; value: string; colors: any;
+  icon: any; label: string; value: string; colors: any; onPress?: () => void; accessibilityLabel?: string;
 }) {
-  return (
-    <View style={[styles.infoRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+  const content = (
+    <>
       <View style={[styles.infoIconWrap, { backgroundColor: colors.primarySubtle }]}>
         <MaterialCommunityIcons name={icon} size={18} color={colors.primary} />
       </View>
@@ -176,7 +164,16 @@ function InfoRow({
         <Text style={[styles.infoLabel, { color: colors.textTertiary }]}>{label}</Text>
         <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{value}</Text>
       </View>
-    </View>
+      {onPress && <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />}
+    </>
+  );
+  const rowStyle = [styles.infoRow, { backgroundColor: colors.surface, borderColor: colors.border }];
+  return onPress ? (
+    <TouchableOpacity onPress={onPress} style={rowStyle} accessibilityRole="button" accessibilityLabel={accessibilityLabel || label}>
+      {content}
+    </TouchableOpacity>
+  ) : (
+    <View style={rowStyle}>{content}</View>
   );
 }
 
@@ -378,11 +375,6 @@ function ChangeCountrySheet({
 }
 
 const styles = StyleSheet.create({
-  changeButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14,
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
-  },
-  changeText: { fontSize: 13, fontWeight: '600' },
   sheet: { flex: 1, padding: 20, width: '100%', maxWidth: 640, alignSelf: 'center' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sheetTitle: { fontSize: 22, fontWeight: '700' },
@@ -400,16 +392,6 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 32, fontWeight: '700' },
   name: { fontSize: 22, fontWeight: '700' },
   email: { fontSize: 13, marginTop: 4 },
-  cuisineCard: {
-    alignItems: 'center',
-    padding: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  flagLarge: { fontSize: 56 },
-  country: { fontSize: 18, fontWeight: '700', marginTop: 10 },
-  region: { fontSize: 14, marginTop: 4 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
   infoRow: {
     flexDirection: 'row',

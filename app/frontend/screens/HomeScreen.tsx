@@ -224,7 +224,7 @@ export default function HomeScreen({ navigation }: any) {
               {recentLists.map(list => (
                 <TouchableOpacity
                   key={list.id}
-                  onPress={() => navigation?.navigate('List', { autoImportDish: list.source_dish || list.title })}
+                  onPress={() => navigation?.navigate('List', { openListId: list.id, title: list.source_dish || list.title, requestedAt: Date.now() })}
                   style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 >
                   <MaterialCommunityIcons name="clipboard-list" size={24} color={colors.primary} />
