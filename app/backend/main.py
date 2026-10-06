@@ -245,9 +245,11 @@ def _coerce_store_types(item: dict) -> None:
     /stores/nearby expect a list (a string would be iterated character by character)."""
     v = item.get("preferred_store_types")
     if isinstance(v, str):
-        item["preferred_store_types"] = [t.strip() for t in v.split(",") if t.strip()]
+        v = [t.strip() for t in v.split(",") if t.strip()]
     elif not isinstance(v, list):
-        item["preferred_store_types"] = []
+        v = []
+    # Models sometimes invent tokens ("asian_grocery", "walmart"); the map only knows these.
+    item["preferred_store_types"] = [t for t in v if t in STORE_TYPE_QUERIES]
 
 # ============================
 # ROUTES
@@ -407,6 +409,126 @@ If the image is unclear or not a food product, use match_score: 0, home_matches:
             except Exception as e:
                 print(f"[scan] Failed to persist: {e}")
 
+        return result
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"AI response parse error: {e}")
+    except httpx.HTTPError as e:
+        raise HTTPException(500, f"AI API error: {e}")
+
+
+class ProductSearchRequest(BaseModel):
+    query: str
+    user_profile: UserProfile
+
+
+def _curated_equivalent(query: str) -> Optional[dict]:
+    """Best hand-curated match from the equivalences seed table, if any. Used as a trusted
+    reference in the prompt so known items stay accurate."""
+    q = query.strip().lower()
+    if len(q) < 3:
+        return None
+    try:
+        rows = supabase.table("equivalences").select("*").ilike("home_item", f"%{q}%").limit(5).execute().data or []
+    except Exception as e:
+        print(f"[product-search] equivalences lookup failed: {e}")
+        return None
+    # Prefer an exact name match, then the highest-scored partial match.
+    rows.sort(key=lambda r: (r["home_item"].lower() != q, -(r.get("match_score") or 0)))
+    return rows[0] if rows else None
+
+
+def _coerce_us_equivalents(result: dict) -> None:
+    raw = result.get("us_equivalents")
+    if isinstance(raw, dict):
+        raw = [raw]
+    items = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict) or not str(m.get("name") or "").strip():
+            continue
+        try:
+            score = max(0, min(100, int(float(m.get("match_score") or 0))))
+        except (TypeError, ValueError):
+            score = 0
+        items.append({
+            "name": str(m["name"]).strip(),
+            "brand": (str(m.get("brand")).strip() or None) if m.get("brand") else None,
+            "match_score": score,
+            "aisle": (str(m.get("aisle")).strip() or None) if m.get("aisle") else None,
+            "tip": (str(m.get("tip")).strip() or None) if m.get("tip") else None,
+        })
+    items.sort(key=lambda m: m["match_score"], reverse=True)
+    result["us_equivalents"] = items[:3]
+
+
+@app.post("/product-search")
+async def product_search(
+    req: ProductSearchRequest,
+    byok: BYOK = Depends(get_byok),
+):
+    """Type a product from any country (e.g. "mascarpone") -> its American versions."""
+    query = req.query.strip()[:120]
+    if not query:
+        raise HTTPException(400, "Type a product name to search.")
+    dietary_str = ", ".join(req.user_profile.dietary_preferences) if req.user_profile.dietary_preferences else "none"
+    curated = _curated_equivalent(query)
+    curated_hint = (
+        f"""
+TRUSTED REFERENCE (hand-curated; use it as the first US equivalent unless it clearly doesn't match the product):
+- {curated['home_item']} ({curated['home_cuisine']}) -> {curated['us_equivalent']}"""
+        f"""{f" by {curated['us_brand']}" if curated.get('us_brand') else ''}, match {curated.get('match_score')}"""
+        f"""{f"; aisle: {curated['aisle_hint']}" if curated.get('aisle_hint') else ''}"""
+        f"""{f"; notes: {curated['notes']}" if curated.get('notes') else ''}
+"""
+        if curated else ""
+    )
+
+    prompt = f"""You are HomeCart, a grocery assistant helping people find familiar foods in American grocery stores.
+
+The user searched for a food product that may come from ANY country: "{query}"
+User's dietary restrictions: {dietary_str}
+{curated_hint}
+TASK:
+1. Identify the product and the country/cuisine it comes from.
+2. Describe what it is and how it is typically used.
+3. Give 1-3 American versions: products sold in US grocery stores that are the closest substitute (a US-made or widely sold US brand version of it, or the closest everyday alternative). For each give a brand if there is a common one, a match score (0-100, where 100 = identical), the aisle where it's usually found, and a short tip on using it in place of the original.
+4. Say where the ORIGINAL product itself can be bought in the US.
+
+Output ONLY valid JSON (no preamble, no markdown fences):
+{{
+  "product_name": "<the product, properly named, e.g. 'Mascarpone'>",
+  "origin_country": "<country it comes from, e.g. 'Italy', or null if unknown>",
+  "description": "<1-2 sentences: what it is and how it's typically used>",
+  "us_equivalents": [
+    {{
+      "name": "<American version, MAX 6 words>",
+      "brand": "<common US brand, or null>",
+      "match_score": <0-100>,
+      "aisle": "<where in a typical US grocery store>",
+      "tip": "<one sentence on using it in place of the original>"
+    }}
+  ],
+  "ai_tip": "<one practical tip>",
+  "availability_breadth": "<where the ORIGINAL product is sold in the US: 'mainstream', 'specialty_only' or 'both'>",
+  "preferred_store_types": <array of 1-4 store-type tokens that carry the original or its American versions. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery">
+}}
+
+us_equivalents must have 1-3 items, best first.
+If "{query}" is not a food product, return us_equivalents: [] and explain in description.
+"""
+
+    try:
+        if not byok.llm_key:
+            _enforce_daily_quota(byok.user_id, "scan")
+        response_text = await call_llm_text(
+            prompt, max_tokens=3000,
+            override_key=byok.llm_key, override_model=byok.llm_text_model,
+            validate=parse_json_from_response,
+        )
+        result = parse_json_from_response(response_text)
+        _coerce_store_types(result)
+        _coerce_us_equivalents(result)
+        result["query"] = query
+        result["curated"] = bool(curated)
         return result
     except json.JSONDecodeError as e:
         raise HTTPException(500, f"AI response parse error: {e}")

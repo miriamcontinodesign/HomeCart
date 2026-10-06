@@ -13,6 +13,7 @@ Started as a hackathon project (the team won 🥇) as an Android app, and since 
 ## Features
 
 - **🔍 Magic Lens** — take or upload a photo of any US grocery product. A vision model reads the label and returns a "cultural equivalent" rooted in your home cuisine, a match score, and the *real version* you'd ideally want from a specialty store. On phones the upload button opens the camera directly; photos are downscaled in the browser before upload.
+- **🔎 Product search** — on the Magic Lens screen, type a product from any country ("mascarpone", "gochujang", "queso fresco") and get its American versions: brand, match score, aisle and a usage tip, plus *Find in a Store*. Known items are anchored to a hand-curated equivalents table.
 - **📒 Recipe Importer** — type a dish ("biryani", "pasta carbonara"). HomeCart returns 8–15 ingredients each with US equivalents, aisle hints, match scores, and an `availability_breadth` classification (mainstream vs specialty).
 - **🗺️ Cultural Map** — Google Maps with cuisine filters and product-aware ranking. Specialty-only products (Alphonso mango, fresh paneer) surface ethnic stores; mainstream products (cauliflower, chicken) show the closest mainstream + specialty mix. The recipe-coverage view ranks stores by how many of your ingredients they carry.
 - **🆓 Runs on free AI models** — each request walks a chain of free OpenRouter models and falls back to the next one if a model is busy, returns nothing, or returns malformed JSON. When everything is busy, the app says so with a friendly retry card instead of failing silently.

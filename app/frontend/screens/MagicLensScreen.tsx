@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,25 @@ type HomeMatch = {
   name: string;
   match_score: number;
   how_to_use?: string | null;
+};
+
+type UsEquivalent = {
+  name: string;
+  brand?: string | null;
+  match_score: number;
+  aisle?: string | null;
+  tip?: string | null;
+};
+
+type ProductSearchResult = {
+  query: string;
+  product_name: string;
+  origin_country?: string | null;
+  description?: string;
+  us_equivalents: UsEquivalent[];
+  ai_tip?: string;
+  availability_breadth?: 'mainstream' | 'specialty_only' | 'both';
+  preferred_store_types?: string[];
 };
 
 type ScanResult = {
@@ -69,12 +88,57 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
   const [lastFile, setLastFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Search by name: a product from any country -> its American versions.
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchDone, setSearchDone] = useState(false);
+  const [searchResult, setSearchResult] = useState<ProductSearchResult | null>(null);
+  const [lastQuery, setLastQuery] = useState('');
+  const [lastAction, setLastAction] = useState<'scan' | 'search'>('scan');
+
+  const runSearch = async (raw?: string) => {
+    const q = (raw ?? query).trim();
+    if (!q) return;
+    setSearching(true);
+    setSearchDone(false);
+    setError(null);
+    setLastQuery(q);
+    setLastAction('search');
+    const startedAt = Date.now();
+    try {
+      const data = await apiFetchJson('/product-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: q,
+          user_profile: {
+            home_country: profile?.home_country,
+            home_region: profile?.home_region,
+            home_cuisines: profile?.home_cuisines || [],
+            dietary_preferences: profile?.dietary_preferences || [],
+          },
+        }),
+      });
+      recordScanDuration(Date.now() - startedAt, 'search');
+      setSearchDone(true);
+      await new Promise(r => setTimeout(r, 400));
+      setSearchResult(data);
+      setQuery('');
+    } catch (err) {
+      console.error('Product search error:', err);
+      setError(describeError(err));
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const scanFile = async (file: File) => {
     try {
       setScanning(true);
       setScanDone(false);
       setError(null);
       setLastFile(file);
+      setLastAction('scan');
       const startedAt = Date.now();
       let image;
       try {
@@ -119,7 +183,26 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
     if (file) scanFile(file);
   };
 
-  const reset = () => { setCapturedImage(null); setResult(null); };
+  const reset = () => { setCapturedImage(null); setResult(null); setSearchResult(null); };
+
+  if (searchResult) {
+    return (
+      <ProductSearchResultView
+        result={searchResult}
+        onReset={reset}
+        onFindStores={() => navigation?.navigate('Map', {
+          returnTo: 'MagicLens',
+          cuisine: profile?.home_country,
+          productName: searchResult.product_name,
+          product_context: {
+            availability_breadth: searchResult.availability_breadth,
+            preferred_store_types: searchResult.preferred_store_types || [],
+          },
+        })}
+        colors={colors}
+      />
+    );
+  }
 
   if (result) {
     return (
@@ -158,16 +241,21 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
           {capturedImage && <Image source={{ uri: capturedImage }} style={styles.pickPreview} />}
           <ScanProgress done={scanDone} homeCountry={countryName(profile?.home_country)} />
         </View>
+      ) : searching ? (
+        <View style={styles.pickBody}>
+          <Text style={[styles.searchingFor, { color: colors.textSecondary }]}>“{lastQuery}”</Text>
+          <ScanProgress done={searchDone} homeCountry={countryName(profile?.home_country)} variant="search" />
+        </View>
       ) : error ? (
         <View style={styles.pickBody}>
           <ErrorCard
             error={error}
-            onRetry={lastFile ? () => scanFile(lastFile) : undefined}
+            onRetry={lastAction === 'search' ? () => runSearch(lastQuery) : lastFile ? () => scanFile(lastFile) : undefined}
             onDismiss={() => setError(null)}
           />
         </View>
       ) : (
-        <View style={styles.pickBody}>
+        <ScrollView contentContainerStyle={[styles.pickBody, { flexGrow: 1 }]} keyboardShouldPersistTaps="handled">
           <View style={[styles.pickIcon, { backgroundColor: colors.primarySubtle }]}>
             <MaterialCommunityIcons name="camera-outline" size={44} color={colors.primary} />
           </View>
@@ -185,8 +273,109 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
           <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
             Tip: get the label in frame and in focus.
           </Text>
-        </View>
+
+          {/* Search by name */}
+          <View style={styles.orRow}>
+            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.orText, { color: colors.textTertiary }]}>or search by name</Text>
+            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+          </View>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={[styles.searchInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              placeholder="e.g. mascarpone, gochujang, queso fresco"
+              placeholderTextColor={colors.textTertiary}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => runSearch()}
+              returnKeyType="search"
+              accessibilityLabel="Search a product from any country"
+            />
+            <TouchableOpacity
+              style={[styles.searchButton, { backgroundColor: colors.primary, opacity: query.trim() ? 1 : 0.5 }]}
+              onPress={() => runSearch()}
+              disabled={!query.trim()}
+              accessibilityLabel="Find the American version"
+            >
+              <MaterialCommunityIcons name="magnify" size={22} color={colors.onPrimary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
+            A product from any country — I'll find its American version.
+          </Text>
+        </ScrollView>
       )}
+    </SafeAreaView>
+  );
+}
+
+function ProductSearchResultView({
+  result, onReset, onFindStores, colors,
+}: {
+  result: ProductSearchResult; onReset: () => void; onFindStores: () => void; colors: any;
+}) {
+  const scoreColorFor = (score: number) => score >= 75 ? colors.scoreHigh : score >= 50 ? colors.scoreMid : colors.scoreLow;
+  return (
+    <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bg }]} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.product_name || result.query}</Text>
+          {!!result.origin_country && (
+            <Text style={[styles.productBrand, { color: colors.textSecondary }]}>From {result.origin_country}</Text>
+          )}
+          {!!result.description && (
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{result.description}</Text>
+          )}
+
+          {result.us_equivalents.length > 0 ? (
+            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>AMERICAN VERSIONS</Text>
+              {result.us_equivalents.map((e, i) => (
+                <View key={`${e.name}-${i}`} style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <View style={styles.matchHeader}>
+                    <Text style={[styles.matchName, { color: colors.textPrimary }]}>{e.name}</Text>
+                    <View style={[styles.matchPill, { backgroundColor: scoreColorFor(e.match_score) + '22' }]}>
+                      <Text style={[styles.matchPillText, { color: scoreColorFor(e.match_score) }]}>{e.match_score}% match</Text>
+                    </View>
+                  </View>
+                  {!!e.brand && <Text style={[styles.equivMeta, { color: colors.primary }]}>{e.brand}</Text>}
+                  {!!e.aisle && (
+                    <View style={styles.aisleRow}>
+                      <MaterialCommunityIcons name="map-marker" size={13} color={colors.textTertiary} />
+                      <Text style={[styles.equivMeta, { color: colors.textTertiary }]}>{e.aisle}</Text>
+                    </View>
+                  )}
+                  {!!e.tip && <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 4 }]}>{e.tip}</Text>}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+              <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
+                I couldn't find an American version for this one.
+              </Text>
+            </View>
+          )}
+
+          {!!result.ai_tip && (
+            <View style={[styles.section, { backgroundColor: colors.primarySubtle, borderColor: colors.primary + '30' }]}>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>💡 AI TIP</Text>
+              <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.ai_tip}</Text>
+            </View>
+          )}
+        </View>
+
+        {result.us_equivalents.length > 0 && (
+          <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.primary }]} onPress={onFindStores}>
+            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
+            <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find in a Store</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={[styles.scanAgainButton, { borderColor: colors.border }]} onPress={onReset}>
+          <Text style={[styles.scanAgainText, { color: colors.textPrimary }]}>Search or scan another</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -292,7 +481,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 24,
   },
   pickButtonText: { fontWeight: '700', fontSize: 15 },
-  pickHint: { fontSize: 12, marginTop: 14 },
+  pickHint: { fontSize: 12, marginTop: 14, textAlign: 'center' },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, width: '100%', maxWidth: 380, marginTop: 32 },
+  orLine: { flex: 1, height: 1 },
+  orText: { fontSize: 12, fontWeight: '600' },
+  searchRow: { flexDirection: 'row', gap: 10, width: '100%', maxWidth: 380, marginTop: 16 },
+  searchInput: { flex: 1, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15 },
+  searchButton: { width: 50, height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  searchingFor: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
+  equivMeta: { fontSize: 13, marginTop: 2 },
+  aisleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
 
   resultContainer: { flex: 1 },
   resultContent: { padding: 20, paddingBottom: 40 },

@@ -7,30 +7,37 @@ import { useTheme } from '../theme/ThemeContext';
 // the result arrives (`done`). The expected time is a running average of this browser's
 // real scans, so the "seconds left" estimate gets realistic after a scan or two.
 
-const STORAGE_KEY = 'homecart_scan_ms';
-const DEFAULT_MS = 12000;      // typical free-model scan (reasoning disabled)
-const MIN_MS = 8000;
+type Variant = 'scan' | 'search';
+
+// Each variant learns its own typical duration (a text search is faster than reading a photo).
+const TIMING: Record<Variant, { key: string; defaultMs: number }> = {
+  scan: { key: 'homecart_scan_ms', defaultMs: 12000 },     // free-model scan, reasoning disabled
+  search: { key: 'homecart_search_ms', defaultMs: 6000 },
+};
+const MIN_MS = 3000;
 const MAX_MS = 90000;
 
-function expectedScanMs(): number {
+function expectedMs(variant: Variant): number {
   try {
-    const v = Number(window.localStorage.getItem(STORAGE_KEY));
+    const v = Number(window.localStorage.getItem(TIMING[variant].key));
     if (v > 0) return Math.min(MAX_MS, Math.max(MIN_MS, v));
   } catch { /* storage blocked — use the default */ }
-  return DEFAULT_MS;
+  return TIMING[variant].defaultMs;
 }
 
-// Blend each successful scan into the estimate (recent scans weigh more).
-export function recordScanDuration(ms: number): void {
+// Blend each successful run into the estimate (recent runs weigh more).
+export function recordScanDuration(ms: number, variant: Variant = 'scan'): void {
   try {
-    const next = Math.round(0.6 * expectedScanMs() + 0.4 * ms);
-    window.localStorage.setItem(STORAGE_KEY, String(Math.min(MAX_MS, Math.max(MIN_MS, next))));
+    const next = Math.round(0.6 * expectedMs(variant) + 0.4 * ms);
+    window.localStorage.setItem(TIMING[variant].key, String(Math.min(MAX_MS, Math.max(MIN_MS, next))));
   } catch { /* ignore */ }
 }
 
-export default function ScanProgress({ done, homeCountry }: { done: boolean; homeCountry: string }) {
+export default function ScanProgress({
+  done, homeCountry, variant = 'scan',
+}: { done: boolean; homeCountry: string; variant?: Variant }) {
   const { colors } = useTheme();
-  const expected = useRef(expectedScanMs()).current;
+  const expected = useRef(expectedMs(variant)).current;
   const started = useRef(Date.now()).current;
   const [elapsed, setElapsed] = useState(0);
 
@@ -47,10 +54,12 @@ export default function ScanProgress({ done, homeCountry }: { done: boolean; hom
   const slow = elapsed > expected * 1.5;
 
   const stage = done ? 'Done!'
-    : progress < 0.12 ? 'Uploading photo…'
-    : progress < 0.45 ? 'Reading the label…'
-    : progress < 0.75 ? `Finding matches from ${homeCountry || 'home'}…`
-    : 'Almost there…';
+    : variant === 'search'
+      ? (progress < 0.35 ? 'Looking up the product…' : progress < 0.75 ? 'Finding American versions…' : 'Almost there…')
+      : (progress < 0.12 ? 'Uploading photo…'
+        : progress < 0.45 ? 'Reading the label…'
+        : progress < 0.75 ? `Finding matches from ${homeCountry || 'home'}…`
+        : 'Almost there…');
 
   const hint = done ? ' '
     : slow ? 'Taking longer than usual — free AI models can be slow.'

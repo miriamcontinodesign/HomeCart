@@ -12,9 +12,10 @@ Distribution model: static web build hosted on Vercel. Two usage modes: shared q
 
 Two deployable surfaces plus one Postgres schema, one budget envelope to protect:
 
-**`app/backend/`** — FastAPI on Render free tier (Blueprint service `homecart-backend`; its public URL goes in the frontend's `EXPO_PUBLIC_API_URL`). Three real endpoints:
+**`app/backend/`** — FastAPI on Render free tier (Blueprint service `homecart-backend`; its public URL goes in the frontend's `EXPO_PUBLIC_API_URL`). Four real endpoints:
 - `POST /scan` — vision LLM call returning structured JSON about a product image
 - `POST /recipe` — text LLM call returning structured JSON ingredients for a dish
+- `POST /product-search` — text LLM call: a product from any country ("mascarpone") → its American versions; uses the curated `equivalences` table as a trusted reference and counts against the scan quota
 - `POST /stores/nearby` — Google Places (New) Text Search with cuisine + product-aware ranking
 
 UptimeRobot pings `/healthz` every 5 min to fight Render's 15-min idle spin-down. Render reads `app/backend/render.yaml` as a Blueprint on push to `main`.
