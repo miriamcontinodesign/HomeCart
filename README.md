@@ -110,11 +110,11 @@ sequenceDiagram
     App->>App: Downscale to ≤1280px → JPEG base64
     App->>API: POST /scan { image, user_profile }
     API->>LLM: vision prompt with cuisine context
-    LLM-->>API: JSON: product · equivalent · score<br/>· real_version · availability_breadth<br/>· preferred_store_types
+    LLM-->>API: JSON: product · brand origin · description<br/>· home_matches · real_version<br/>· availability_breadth · preferred_store_types
     API->>DB: insert into scans
     API-->>App: ScanResult
-    App->>User: Match card · "Get the real thing →"
-    User->>App: Tap "Get the real thing"
+    App->>User: Description · similar products from home · "Find in a Store"
+    User->>App: Tap "Find in a Store"
     App->>App: navigate('Map', { product_context })
 ```
 

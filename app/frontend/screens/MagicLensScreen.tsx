@@ -8,11 +8,21 @@ import { apiFetchJson } from '../lib/api';
 import { Alert } from '../lib/alert';
 import ErrorCard from '../components/ErrorCard';
 import { describeError, FriendlyError } from '../lib/errors';
+import { countryName } from '../lib/countries';
+
+type HomeMatch = {
+  name: string;
+  match_score: number;
+  how_to_use?: string | null;
+};
 
 type ScanResult = {
   detected_product: string;
   detected_brand?: string;
+  brand_origin?: string | null;
   detected_category?: string;
+  description?: string;
+  home_matches?: HomeMatch[];
   cultural_equivalent: string;
   match_score: number;
   ai_tip: string;
@@ -102,6 +112,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
         result={result}
         image={capturedImage}
         onReset={reset}
+        homeCountry={countryName(profile?.home_country)}
         onFindStores={result.real_version_name ? () => navigation?.navigate('Map', {
           cuisine: profile?.home_country,
           productName: result.real_version_name,
@@ -169,11 +180,13 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
 }
 
 function ScanResultView({
-  result, image, onReset, onFindStores, colors,
+  result, image, homeCountry, onReset, onFindStores, colors,
 }: {
-  result: ScanResult; image: string | null; onReset: () => void; onFindStores?: () => void; colors: any;
+  result: ScanResult; image: string | null; homeCountry: string; onReset: () => void; onFindStores?: () => void; colors: any;
 }) {
-  const scoreColor = result.match_score >= 75 ? colors.scoreHigh : result.match_score >= 50 ? colors.scoreMid : colors.scoreLow;
+  const scoreColorFor = (score: number) => score >= 75 ? colors.scoreHigh : score >= 50 ? colors.scoreMid : colors.scoreLow;
+  const scoreColor = scoreColorFor(result.match_score);
+  const matches = result.home_matches || [];
 
   return (
     <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -182,17 +195,50 @@ function ScanResultView({
 
         <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.detected_product}</Text>
-          {!!result.detected_brand && <Text style={[styles.productBrand, { color: colors.textSecondary }]}>{result.detected_brand}</Text>}
+          {!!result.detected_brand && (
+            <Text style={[styles.productBrand, { color: colors.textSecondary }]}>
+              {result.detected_brand}{result.brand_origin ? ` (${result.brand_origin})` : ''}
+            </Text>
+          )}
+          {!!result.description && (
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{result.description}</Text>
+          )}
 
-          <View style={[styles.scoreCircle, { backgroundColor: scoreColor }]}>
-            <Text style={styles.scoreNumber}>{result.match_score}</Text>
-            <Text style={styles.scoreLabel}>MATCH</Text>
-          </View>
-
-          <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>FOR YOUR CUISINE</Text>
-            <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.cultural_equivalent}</Text>
-          </View>
+          {matches.length > 0 ? (
+            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>
+                SIMILAR FROM {(homeCountry || 'HOME').toUpperCase()}
+              </Text>
+              {matches.map((m, i) => (
+                <View
+                  key={`${m.name}-${i}`}
+                  style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+                >
+                  <View style={styles.matchHeader}>
+                    <Text style={[styles.matchName, { color: colors.textPrimary }]}>{m.name}</Text>
+                    <View style={[styles.matchPill, { backgroundColor: scoreColorFor(m.match_score) + '22' }]}>
+                      <Text style={[styles.matchPillText, { color: scoreColorFor(m.match_score) }]}>{m.match_score}% match</Text>
+                    </View>
+                  </View>
+                  {!!m.how_to_use && (
+                    <Text style={[styles.sectionText, { color: colors.textSecondary }]}>{m.how_to_use}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          ) : (
+            // Older scans (and replies from models that skip home_matches) only have the summary.
+            <>
+              <View style={[styles.scoreCircle, { backgroundColor: scoreColor }]}>
+                <Text style={styles.scoreNumber}>{result.match_score}</Text>
+                <Text style={styles.scoreLabel}>MATCH</Text>
+              </View>
+              <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>FOR YOUR CUISINE</Text>
+                <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.cultural_equivalent}</Text>
+              </View>
+            </>
+          )}
 
           {!!result.real_version_name && (
             <View style={[styles.section, { backgroundColor: colors.scoreHigh + '15', borderColor: colors.scoreHigh + '30' }]}>
@@ -217,7 +263,7 @@ function ScanResultView({
         {onFindStores && (
           <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.primary }]} onPress={onFindStores}>
             <MaterialCommunityIcons name="store-marker" size={18} color="#fff" />
-            <Text style={styles.findStoresText}>Get the real thing</Text>
+            <Text style={styles.findStoresText}>Find in a Store</Text>
           </TouchableOpacity>
         )}
 
@@ -249,6 +295,12 @@ const styles = StyleSheet.create({
   resultCard: { borderRadius: 20, padding: 20, borderWidth: 1 },
   productName: { fontSize: 22, fontWeight: '700' },
   productBrand: { fontSize: 13, marginTop: 4 },
+  description: { fontSize: 14, lineHeight: 20, marginTop: 10, marginBottom: 6 },
+  matchRow: { paddingVertical: 10 },
+  matchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
+  matchName: { flex: 1, fontSize: 15, fontWeight: '700' },
+  matchPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  matchPillText: { fontSize: 12, fontWeight: '700' },
   scoreCircle: {
     width: 96, height: 96, borderRadius: 48, alignSelf: 'center',
     justifyContent: 'center', alignItems: 'center', marginVertical: 20,

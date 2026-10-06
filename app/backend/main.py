@@ -202,6 +202,28 @@ def parse_json_from_response(text: str) -> dict:
 
 
 
+def _coerce_home_matches(result: dict) -> None:
+    """Keep home_matches a clean list (free models sometimes return an object or junk) and
+    make the top-level match_score the best of them, since history screens use it."""
+    raw = result.get("home_matches")
+    if isinstance(raw, dict):
+        raw = [raw]
+    matches = []
+    for m in raw if isinstance(raw, list) else []:
+        if not isinstance(m, dict) or not str(m.get("name") or "").strip():
+            continue
+        try:
+            score = max(0, min(100, int(float(m.get("match_score") or 0))))
+        except (TypeError, ValueError):
+            score = 0
+        matches.append({"name": str(m["name"]).strip(), "match_score": score,
+                        "how_to_use": str(m.get("how_to_use") or "").strip() or None})
+    matches.sort(key=lambda m: m["match_score"], reverse=True)
+    result["home_matches"] = matches[:3]
+    if matches:
+        result["match_score"] = matches[0]["match_score"]
+
+
 def _coerce_store_types(item: dict) -> None:
     """Weaker models sometimes return preferred_store_types as a bare string; the app and
     /stores/nearby expect a list (a string would be iterated character by character)."""
@@ -253,9 +275,9 @@ USER CONTEXT:
 - Dietary restrictions: {dietary_str}
 
 TASK:
-1. Identify the product in the image (name, brand if visible, category).
-2. Translate it to the user's home cuisine. Is this product close to something they'd use at home? What dish?
-3. Score how close it is to the "real thing" they'd use back home (0-100, where 100 = identical).
+1. Identify the product in the image (name, brand if visible, category) and where the brand comes from.
+2. Describe the product and how it is typically used.
+3. Find 1-3 similar products from the user's home country. For each, score how close this product is to it (0-100, where 100 = identical) and explain how the user could use this product in its place.
 4. Suggest the IDEAL product they'd want from a specialty store catering to their cuisine, if applicable.
 5. If the user could make a closer alternative at home (and their cooking confidence allows), describe it briefly.
 6. Give one practical tip for using this product or substituting it.
@@ -264,9 +286,18 @@ Output ONLY valid JSON (no preamble, no markdown fences):
 {{
   "detected_product": "<product name>",
   "detected_brand": "<brand or null>",
+  "brand_origin": "<country the brand comes from, e.g. 'Mexico', 'USA', 'Italy' — or null if unknown>",
   "detected_category": "<rice|flour|cheese|spice|sauce|etc>",
+  "description": "<1-2 sentences: what this product is and how it is typically used>",
+  "home_matches": [
+    {{
+      "name": "<SHORT name of a similar product from the user's home country, MAX 6 words>",
+      "match_score": <0-100: how close this product is to that one>,
+      "how_to_use": "<one sentence: how the user could use this product in place of it>"
+    }}
+  ],
   "cultural_equivalent": "<one sentence: what is this in their cuisine?>",
-  "match_score": <0-100>,
+  "match_score": <0-100: the highest match_score in home_matches>,
   "real_version_name": "<SHORT product name, MAX 6 words, e.g. 'Amul Fresh Cream' or 'San Marzano DOP Tomatoes' or 'Alphonso Mango' — never a sentence, never parenthetical store list. Or null.>",
   "ai_tip": "<one practical tip>",
   "can_make_at_home": <true/false>,
@@ -275,7 +306,8 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "preferred_store_types": <array of store-type tokens that carry this product. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery". Always include 1-4 tokens.>
 }}
 
-If the image is unclear or not a food product, use match_score: 0 and explain in cultural_equivalent.
+home_matches must have 1-3 items, best match first.
+If the image is unclear or not a food product, use match_score: 0, home_matches: [], and explain in description.
 """
 
     try:
@@ -290,6 +322,7 @@ If the image is unclear or not a food product, use match_score: 0 and explain in
         )
         result = parse_json_from_response(response_text)
         _coerce_store_types(result)
+        _coerce_home_matches(result)
 
         # Persist scan if user authenticated
         if user_id:
