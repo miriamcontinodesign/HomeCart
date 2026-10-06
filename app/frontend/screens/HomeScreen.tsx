@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
+import { Alert } from '../lib/alert';
 
 
 interface RecentScan {
@@ -14,6 +15,7 @@ interface RecentScan {
   detected_product: string;
   cultural_equivalent: string;
   match_score: number;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -31,25 +33,64 @@ export default function HomeScreen({ navigation }: any) {
   const [recentLists, setRecentLists] = useState<RecentList[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadRecent = useCallback(async () => {
     if (!user) return;
-    (async () => {
-      try {
-        const [scansRes, listsRes] = await Promise.all([
-          supabase.from('scans').select('id, detected_product, cultural_equivalent, match_score, created_at')
-            .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-          supabase.from('shopping_lists').select('id, title, source_dish, created_at')
-            .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-        ]);
-        if (scansRes.data) setRecentScans(scansRes.data);
-        if (listsRes.data) setRecentLists(listsRes.data);
-      } catch (e) {
-        console.error('Home data fetch failed:', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    try {
+      const [scansRes, listsRes] = await Promise.all([
+        supabase.from('scans').select('id, detected_product, cultural_equivalent, match_score, image_url, created_at')
+          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+        supabase.from('shopping_lists').select('id, title, source_dish, created_at')
+          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+      ]);
+      if (scansRes.data) setRecentScans(scansRes.data);
+      if (listsRes.data) setRecentLists(listsRes.data);
+    } catch (e) {
+      console.error('Home data fetch failed:', e);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  // Tabs stay mounted, so reload whenever Home comes back into view — otherwise a scan or
+  // recipe made a moment ago wouldn't show up until a full page reload.
+  useEffect(() => {
+    loadRecent();
+    return navigation?.addListener?.('focus', loadRecent);
+  }, [loadRecent, navigation]);
+
+  // Deletes go through the anon client: the users_own_scans RLS policy limits them to the
+  // signed-in user's rows.
+  const deleteScan = async (id: string) => {
+    const previous = recentScans;
+    setRecentScans(scans => scans.filter(s => s.id !== id));
+    const { error } = await supabase.from('scans').delete().eq('id', id);
+    if (error) {
+      setRecentScans(previous);
+      Alert.alert('Could not delete', error.message);
+    } else {
+      loadRecent();  // pull in the next-most-recent scan to keep three showing
+    }
+  };
+
+  const clearAllScans = () => {
+    if (!user) return;
+    Alert.alert(
+      'Clear all scans?',
+      'This permanently deletes your whole scan history.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear all',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('scans').delete().eq('user_id', user.id);
+            if (error) Alert.alert('Could not clear scans', error.message);
+            else setRecentScans([]);
+          },
+        },
+      ],
+    );
+  };
 
   const firstName = (user?.user_metadata?.full_name || profile?.full_name || 'there').split(' ')[0];
   const flag = countryFlag(profile?.home_country);
@@ -124,19 +165,41 @@ export default function HomeScreen({ navigation }: any) {
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Scans</Text>
-              <TouchableOpacity onPress={() => navigation?.navigate('MagicLens')}>
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>+ New</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity onPress={clearAllScans} accessibilityRole="button" accessibilityLabel="Clear all scans">
+                  <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600' }}>Clear all</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation?.navigate('MagicLens')}>
+                  <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>+ New</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             {recentScans.map(scan => (
               <View key={scan.id} style={[styles.scanCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={{ flex: 1, paddingRight: 12 }}>
+                {scan.image_url ? (
+                  <Image source={{ uri: scan.image_url }} style={styles.scanThumb} accessibilityLabel={scan.detected_product} />
+                ) : (
+                  // Scans saved before thumbnails existed.
+                  <View style={[styles.scanThumb, styles.scanThumbEmpty, { backgroundColor: colors.primarySubtle }]}>
+                    <MaterialCommunityIcons name="image-outline" size={24} color={colors.primary} />
+                  </View>
+                )}
+                <View style={{ flex: 1, paddingRight: 10 }}>
                   <Text style={[styles.scanProduct, { color: colors.textPrimary }]} numberOfLines={1}>{scan.detected_product}</Text>
                   <Text style={[styles.scanCultural, { color: colors.textSecondary }]} numberOfLines={2}>{scan.cultural_equivalent}</Text>
                 </View>
                 <View style={[styles.scoreBadge, { backgroundColor: scoreColor(scan.match_score) + '22' }]}>
                   <Text style={[styles.scoreText, { color: scoreColor(scan.match_score) }]}>{scan.match_score}</Text>
                 </View>
+                <TouchableOpacity
+                  onPress={() => deleteScan(scan.id)}
+                  style={styles.deleteButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete scan: ${scan.detected_product}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textTertiary} />
+                </TouchableOpacity>
               </View>
             ))}
           </>
@@ -248,6 +311,10 @@ const styles = StyleSheet.create({
   scanCultural: { fontSize: 12, marginTop: 4, lineHeight: 16 },
   scoreBadge: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   scoreText: { fontSize: 14, fontWeight: '800' },
+  scanThumb: { width: 56, height: 56, borderRadius: 10, marginRight: 12 },
+  scanThumbEmpty: { justifyContent: 'center', alignItems: 'center' },
+  deleteButton: { marginLeft: 8, padding: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   emptyCard: {
     padding: 24,
     borderRadius: 14,

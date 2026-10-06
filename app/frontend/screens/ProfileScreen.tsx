@@ -9,10 +9,6 @@ import CountryPicker from '../components/CountryPicker';
 import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 
-const CONFIDENCE_LABELS: Record<number, string> = {
-  1: 'Beginner', 2: 'Casual', 3: 'Home cook', 4: 'Confident', 5: 'Expert',
-};
-
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { colors, mode, setMode } = useTheme();
@@ -56,12 +52,6 @@ export default function ProfileScreen() {
         {/* Profile info section */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>YOUR PROFILE</Text>
 
-        <InfoRow
-          icon="silverware-fork-knife"
-          label="Cooking Confidence"
-          value={profile?.cooking_confidence ? `${profile.cooking_confidence}/5 · ${CONFIDENCE_LABELS[profile.cooking_confidence]}` : 'Not set'}
-          colors={colors}
-        />
         <InfoRow
           icon="translate"
           label="Preferred Language"

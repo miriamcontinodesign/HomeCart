@@ -50,7 +50,6 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
             home_country: profile?.home_country,
             home_region: profile?.home_region,
             home_cuisines: profile?.home_cuisines || [],
-            cooking_confidence: profile?.cooking_confidence || 3,
             dietary_preferences: profile?.dietary_preferences || [],
           },
         }),

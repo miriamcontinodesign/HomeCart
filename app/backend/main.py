@@ -48,13 +48,24 @@ class UserProfile(BaseModel):
     home_country: Optional[str] = None
     home_region: Optional[str] = None
     home_cuisines: list[str] = []
-    cooking_confidence: int = 3
+    cooking_confidence: int = 3  # no longer collected; kept so older clients still validate
     dietary_preferences: list[str] = []
 
 
 class ScanRequest(BaseModel):
     image_base64: str
     user_profile: UserProfile
+    # Small JPEG data URL made in the browser, stored as scans.image_url for history cards.
+    thumbnail_data_url: Optional[str] = None
+
+
+_MAX_THUMBNAIL_CHARS = 60_000  # ~45 KB of JPEG; the app sends ~10 KB
+
+
+def _safe_thumbnail(data_url: Optional[str]) -> Optional[str]:
+    if data_url and data_url.startswith("data:image/jpeg;base64,") and len(data_url) <= _MAX_THUMBNAIL_CHARS:
+        return data_url
+    return None
 
 
 class RecipeImportRequest(BaseModel):
@@ -322,7 +333,6 @@ USER CONTEXT:
 - Home country: {req.user_profile.home_country or 'Unknown'}
 - Home region: {req.user_profile.home_region or 'Unknown'}
 - Home cuisines: {cuisines_str}
-- Cooking confidence (1-5): {req.user_profile.cooking_confidence}
 - Dietary restrictions: {dietary_str}
 
 TASK:
@@ -330,7 +340,7 @@ TASK:
 2. Describe the product and how it is typically used.
 3. Find 1-3 similar products from the user's home country. For each, score how close this product is to it (0-100, where 100 = identical) and explain how the user could use this product in its place.
 4. Suggest the IDEAL product they'd want from a specialty store catering to their cuisine, if applicable.
-5. If the user could make a closer alternative at home (and their cooking confidence allows), describe it briefly.
+5. If the user could make a closer alternative at home with simple steps, describe it briefly.
 6. Give one practical tip for using this product or substituting it.
 
 Output ONLY valid JSON (no preamble, no markdown fences):
@@ -380,6 +390,7 @@ If the image is unclear or not a food product, use match_score: 0, home_matches:
             try:
                 supabase.table("scans").insert({
                     "user_id": user_id,
+                    "image_url": _safe_thumbnail(req.thumbnail_data_url),
                     "detected_product": result.get("detected_product"),
                     "detected_brand": result.get("detected_brand"),
                     "detected_category": result.get("detected_category"),
@@ -416,7 +427,6 @@ async def import_recipe(
 
 USER:
 - Home cuisines: {cuisines_str}
-- Cooking confidence (1-5): {req.user_profile.cooking_confidence}
 - Dietary: {dietary_str}
 
 DISH: {req.dish_name}

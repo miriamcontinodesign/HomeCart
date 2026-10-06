@@ -36,19 +36,26 @@ type ScanResult = {
 
 // Phone photos are often 5-10 MB; the vision model only needs enough detail to read a label.
 const MAX_IMAGE_SIDE = 1280;
+const THUMBNAIL_SIDE = 160;  // saved with the scan for the Home history cards (~10 KB)
 
 // Decode the picked file, downscale it, and re-encode as JPEG. Returns the base64 payload
-// (no data: prefix) the /scan endpoint expects, plus a data URL for the preview.
-async function prepareImage(file: File): Promise<{ base64: string; dataUrl: string }> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+// (no data: prefix) the /scan endpoint expects, a data URL for the preview, and a small
+// thumbnail the backend stores with the scan for the Home history cards.
+function drawScaled(bitmap: ImageBitmap, maxSide: number, quality: number): string {
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+async function prepareImage(file: File): Promise<{ base64: string; dataUrl: string; thumbnail: string }> {
+  const bitmap = await createImageBitmap(file);
+  const dataUrl = drawScaled(bitmap, MAX_IMAGE_SIDE, 0.8);
+  const thumbnail = drawScaled(bitmap, THUMBNAIL_SIDE, 0.7);
   bitmap.close();
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-  return { base64: dataUrl.split(',')[1], dataUrl };
+  return { base64: dataUrl.split(',')[1], dataUrl, thumbnail };
 }
 
 export default function MagicLensScreen({ navigation }: { navigation?: any }) {
@@ -83,11 +90,11 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           image_base64: image.base64,
+          thumbnail_data_url: image.thumbnail,
           user_profile: {
             home_country: profile?.home_country,
             home_region: profile?.home_region,
             home_cuisines: profile?.home_cuisines || [],
-            cooking_confidence: profile?.cooking_confidence || 3,
             dietary_preferences: profile?.dietary_preferences || [],
           },
         }),
