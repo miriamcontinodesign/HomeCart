@@ -105,7 +105,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
             onPress={() => importRecipe()}
             disabled={loading || !dish.trim()}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <MaterialCommunityIcons name="auto-fix" size={22} color="#fff" />}
+            {loading ? <ActivityIndicator color={colors.onPrimary} /> : <MaterialCommunityIcons name="auto-fix" size={22} color={colors.onPrimary} />}
           </TouchableOpacity>
         </View>
 
@@ -174,8 +174,8 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
               });
             }}
           >
-            <MaterialCommunityIcons name="store-marker" size={18} color="#fff" />
-            <Text style={styles.findStoresText}>Find stores for this list</Text>
+            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
+            <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find stores for this list</Text>
           </TouchableOpacity>
         )}
 
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     gap: 8,
   },
-  findStoresText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  findStoresText: { fontWeight: '700', fontSize: 15 },
   dishHeader: { fontSize: 22, fontWeight: '700', marginBottom: 2 },
   dishSub: { fontSize: 13, marginBottom: 16 },
   ingredientCard: { borderRadius: 14, padding: 16, borderWidth: 1, marginBottom: 10 },

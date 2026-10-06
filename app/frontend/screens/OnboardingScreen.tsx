@@ -123,7 +123,7 @@ export default function OnboardingScreen() {
               ]}
               onPress={() => setConfidence(n)}
             >
-              <Text style={{ color: sel ? '#fff' : colors.textTertiary, fontWeight: '700', fontSize: 18 }}>{n}</Text>
+              <Text style={{ color: sel ? colors.onPrimary : colors.textTertiary, fontWeight: '700', fontSize: 18 }}>{n}</Text>
             </TouchableOpacity>
           );
         })}
@@ -147,7 +147,7 @@ export default function OnboardingScreen() {
               ]}
               onPress={() => toggleDietary(item)}
             >
-              <Text style={{ color: sel ? '#fff' : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 14 }}>{item}</Text>
+              <Text style={{ color: sel ? colors.onPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 14 }}>{item}</Text>
             </TouchableOpacity>
           );
         })}
@@ -188,9 +188,9 @@ export default function OnboardingScreen() {
           disabled={!canAdvance() || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
-            <Text style={[styles.nextButtonText, { color: canAdvance() ? '#fff' : colors.textTertiary }]}>
+            <Text style={[styles.nextButtonText, { color: canAdvance() ? colors.onPrimary : colors.textTertiary }]}>
               {step === TOTAL_STEPS ? 'Get Started' : 'Next'}
             </Text>
           )}

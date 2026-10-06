@@ -55,7 +55,7 @@ export default function AuthScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.brandWrap}>
             <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-              <MaterialCommunityIcons name="map-marker-radius" size={36} color="#fff" />
+              <MaterialCommunityIcons name="map-marker-radius" size={36} color={colors.onPrimary} />
             </View>
             <Text style={[styles.title, { color: colors.textPrimary }]}>HomeCart</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -109,8 +109,8 @@ export default function AuthScreen() {
               disabled={loading}
               activeOpacity={0.85}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : (
-                <Text style={styles.buttonText}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
+              {loading ? <ActivityIndicator color={colors.onPrimary} /> : (
+                <Text style={[styles.buttonText, { color: colors.onPrimary }]}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
               )}
             </TouchableOpacity>
 
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
   input: { height: 52, borderRadius: 14, paddingHorizontal: 16, fontSize: 15, borderWidth: 1 },
   button: { height: 54, borderRadius: 14, justifyContent: 'center', alignItems: 'center', width: '100%', marginTop: 6 },
-  buttonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  buttonText: { fontSize: 16, fontWeight: '700', },
   toggleButton: { marginTop: 20, alignItems: 'center' },
   toggleText: { fontSize: 14, fontWeight: '600' },
   footerText: { marginTop: 32, fontSize: 12, textAlign: 'center', lineHeight: 18 },

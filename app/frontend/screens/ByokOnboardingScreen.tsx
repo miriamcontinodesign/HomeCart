@@ -61,8 +61,8 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
           style={[styles.cta, { backgroundColor: colors.primary }]}
           onPress={() => setSettingsOpen(true)}
         >
-          <MaterialCommunityIcons name="cog" size={20} color="#fff" />
-          <Text style={styles.ctaText}>Configure keys</Text>
+          <MaterialCommunityIcons name="cog" size={20} color={colors.onPrimary} />
+          <Text style={[styles.ctaText, { color: colors.onPrimary }]}>Configure keys</Text>
         </TouchableOpacity>
       </View>
 
@@ -108,5 +108,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: 16, borderRadius: 14,
   },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  ctaText: { fontSize: 16, fontWeight: '700' },
 });

@@ -29,8 +29,8 @@ export default function ErrorCard({
       <View style={styles.actions}>
         {error.retryable && onRetry && (
           <TouchableOpacity style={[styles.primary, { backgroundColor: colors.primary }]} onPress={onRetry}>
-            <MaterialCommunityIcons name="refresh" size={16} color="#fff" />
-            <Text style={styles.primaryText}>Try again</Text>
+            <MaterialCommunityIcons name="refresh" size={16} color={colors.onPrimary} />
+            <Text style={[styles.primaryText, { color: colors.onPrimary }]}>Try again</Text>
           </TouchableOpacity>
         )}
         {onDismiss && (
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
   },
-  primaryText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  primaryText: { fontWeight: '700', fontSize: 14 },
   secondary: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   secondaryText: { fontWeight: '600', fontSize: 14 },
 });

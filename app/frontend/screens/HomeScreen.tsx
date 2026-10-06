@@ -60,8 +60,8 @@ export default function HomeScreen({ navigation }: any) {
     : 'your cuisine';
 
   const QUICK_ACTIONS = [
-    { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: '#10B981', onPress: () => navigation?.navigate('List') },
-    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: '#F472B6', onPress: () => navigation?.navigate('Map', {}) },
+    { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: colors.scoreMid, onPress: () => navigation?.navigate('List') },
+    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: colors.scoreLow, onPress: () => navigation?.navigate('Map', {}) },
   ];
 
   const scoreColor = (s: number) => s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow;
@@ -77,7 +77,7 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Mapping {cuisineLabel} to your local stores</Text>
           </View>
           <TouchableOpacity onPress={() => navigation?.navigate('Profile')} style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+            <Text style={[styles.avatarText, { color: colors.onPrimary }]}>{firstName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
 
@@ -88,12 +88,12 @@ export default function HomeScreen({ navigation }: any) {
           activeOpacity={0.85}
         >
           <View style={styles.heroLeft}>
-            <Text style={styles.heroEyebrow}>MAGIC LENS</Text>
-            <Text style={styles.heroTitle}>Scan any product</Text>
-            <Text style={styles.heroSub}>Translate it to {cuisineLabel} in seconds</Text>
+            <Text style={[styles.heroEyebrow, { color: colors.onPrimary }]}>MAGIC LENS</Text>
+            <Text style={[styles.heroTitle, { color: colors.onPrimary }]}>Scan any product</Text>
+            <Text style={[styles.heroSub, { color: colors.onPrimary }]}>Translate it to {cuisineLabel} in seconds</Text>
           </View>
           <View style={styles.heroIcon}>
-            <MaterialCommunityIcons name="scan-helper" size={56} color="#fff" />
+            <MaterialCommunityIcons name="scan-helper" size={56} color={colors.onPrimary} />
           </View>
         </TouchableOpacity>
 
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 26, fontWeight: '700' },
   subtitle: { fontSize: 14, marginTop: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  avatarText: { fontSize: 18, fontWeight: '700' },
   heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -218,9 +218,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroLeft: { flex: 1 },
-  heroEyebrow: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 4 },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  heroSub: { color: 'rgba(255,255,255,0.92)', fontSize: 13, marginTop: 6, lineHeight: 18 },
+  heroEyebrow: { opacity: 0.85, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 4 },
+  heroTitle: { fontSize: 22, fontWeight: '800' },
+  heroSub: { opacity: 0.92, fontSize: 13, marginTop: 6, lineHeight: 18 },
   heroIcon: { opacity: 0.95 },
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 14, marginTop: 6 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 10 },

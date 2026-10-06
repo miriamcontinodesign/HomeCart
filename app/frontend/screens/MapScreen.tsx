@@ -278,22 +278,16 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
     }
   }, [showStoreList, fitToAllStores]);
 
+  // Pin colour by meaning rather than per-cuisine: specialty grocer, recommended for what
+  // the user is looking for, or any other store.
   const cuisineColor = (s: Store) => {
-    const cs = s.cuisines || [];
+    if (s.is_specialty) return colors.cultural;
     if (s.is_preferred) return colors.primary;
-    if (cs.includes('indian') || cs.includes('south_asian')) return '#F97316';
-    if (cs.includes('italian')) return '#22C55E';
-    if (cs.includes('korean') || cs.includes('chinese')) return '#EF4444';
-    if (cs.includes('japanese')) return '#EC4899';
-    if (cs.includes('mexican')) return '#FBBF24';
-    if (cs.includes('middle_eastern') || cs.includes('turkish')) return '#A855F7';
-    if (cs.includes('caribbean') || cs.includes('african') || cs.includes('nigerian')) return '#F472B6';
     return colors.textTertiary;
   };
 
-  const scoreColor = (s: number) => (s >= 80 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444');
-  const scoreBg = (s: number) =>
-    s >= 80 ? 'rgba(16,185,129,0.15)' : s >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+  const scoreColor = (s: number) => (s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow);
+  const scoreBg = (s: number) => scoreColor(s) + '26';  // ~15% alpha
 
   if (!mapRegion) {
     return (
@@ -353,7 +347,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
               title="You are here"
               zIndex={0}
             >
-              <View style={styles.userDot} />
+              <View style={[styles.userDot, { backgroundColor: colors.scoreHigh }]} />
             </AdvancedMarker>
           )}
           {stores.map(store => (
@@ -378,7 +372,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                   store.is_specialty && styles.markerSpecialty,
                 ]}
               >
-                <Text style={styles.markerText}>
+                <Text style={[styles.markerText, { color: colors.onPrimary }]}>
                   {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
                 </Text>
               </View>
@@ -399,8 +393,8 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             },
           ]}
         >
-          <MaterialCommunityIcons name="magnify" size={16} color="#fff" />
-          <Text style={styles.searchHereText}>Search this area</Text>
+          <MaterialCommunityIcons name="magnify" size={16} color={colors.onPrimary} />
+          <Text style={[styles.searchHereText, { color: colors.onPrimary }]}>Search this area</Text>
         </TouchableOpacity>
       )}
 
@@ -480,7 +474,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             }
             style={[styles.directionsBtn, { backgroundColor: colors.primary }]}
           >
-            <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 15 }}>Get Directions</Text>
+            <Text style={{ color: colors.onPrimary, fontWeight: '600', fontSize: 15 }}>Get Directions</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -552,7 +546,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                         style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                       >
                         <View style={[styles.listMarker, { backgroundColor: cuisineColor(store) }]}>
-                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>
+                          <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: '800' }}>
                             {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
                           </Text>
                         </View>
@@ -662,7 +656,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  searchHereText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  searchHereText: { fontSize: 13, fontWeight: '600' },
   fab: {
     position: 'absolute',
     right: 16,
@@ -691,12 +685,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   markerSpecialty: { borderWidth: 3 },
-  markerText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
+  markerText: { fontWeight: '800', fontSize: 12 },
   userDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#3B82F6',
     borderWidth: 3,
     borderColor: '#FFF',
   },

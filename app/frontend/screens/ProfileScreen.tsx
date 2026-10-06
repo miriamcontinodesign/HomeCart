@@ -31,7 +31,7 @@ export default function ProfileScreen() {
         {/* Avatar header */}
         <View style={styles.headerSection}>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>{fullName.charAt(0).toUpperCase()}</Text>
+            <Text style={[styles.avatarText, { color: colors.onPrimary }]}>{fullName.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={[styles.name, { color: colors.textPrimary }]}>{fullName}</Text>
           {!!email && <Text style={[styles.email, { color: colors.textSecondary }]}>{email}</Text>}
@@ -276,7 +276,7 @@ function ChangePasswordSheet({
               Use your new password the next time you sign in.
             </Text>
             <TouchableOpacity onPress={onClose} style={[styles.saveButton, { backgroundColor: colors.primary, alignSelf: 'stretch' }]}>
-              <Text style={styles.saveText}>Done</Text>
+              <Text style={[styles.saveText, { color: colors.onPrimary }]}>Done</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -297,7 +297,7 @@ function ChangePasswordSheet({
               disabled={!canSave}
               style={[styles.saveButton, { backgroundColor: colors.primary, opacity: canSave ? 1 : 0.5 }]}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Update password</Text>}
+              {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.saveText, { color: colors.onPrimary }]}>Update password</Text>}
             </TouchableOpacity>
           </>
         )}
@@ -380,7 +380,7 @@ function ChangeCountrySheet({
           disabled={saving || unchanged || !countryId}
           style={[styles.saveButton, { backgroundColor: colors.primary, opacity: saving || unchanged || !countryId ? 0.5 : 1 }]}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save</Text>}
+          {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.saveText, { color: colors.onPrimary }]}>Save</Text>}
         </TouchableOpacity>
       </View>
     </Modal>
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   sheetSub: { fontSize: 14, marginTop: 6, marginBottom: 18, lineHeight: 20 },
   sheetError: { fontSize: 13, marginBottom: 10, textAlign: 'center' },
   saveButton: { padding: 15, borderRadius: 14, alignItems: 'center' },
-  saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  saveText: { fontWeight: '700', fontSize: 15 },
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   passwordInput: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 15 },
   doneWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   headerSection: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
   avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText: { color: '#fff', fontSize: 32, fontWeight: '700' },
+  avatarText: { fontSize: 32, fontWeight: '700' },
   name: { fontSize: 22, fontWeight: '700' },
   email: { fontSize: 13, marginTop: 4 },
   cuisineCard: {

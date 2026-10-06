@@ -84,15 +84,15 @@ function MainTabNavigator() {
           tabBarIcon: ({ focused }) => (
             <View style={{
               width: 64, height: 64, borderRadius: 32,
-              backgroundColor: darkColors.primary,
+              backgroundColor: colors.primary,
               justifyContent: 'center', alignItems: 'center',
               marginBottom: 30,
-              borderWidth: 4, borderColor: darkColors.surface,
-              shadowColor: darkColors.primary,
+              borderWidth: 4, borderColor: colors.surface,
+              shadowColor: colors.primary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.4, shadowRadius: 8, elevation: 5,
             }}>
-              <MaterialCommunityIcons name="scan-helper" size={32} color="#fff" />
+              <MaterialCommunityIcons name="scan-helper" size={32} color={colors.onPrimary} />
             </View>
           ),
         }}

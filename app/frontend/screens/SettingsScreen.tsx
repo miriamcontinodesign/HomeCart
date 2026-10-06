@@ -235,7 +235,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
             onPress={onSave}
             disabled={saving}
           >
-            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Save</Text>}
+            {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.saveText, { color: colors.onPrimary }]}>Save</Text>}
           </TouchableOpacity>
         </View>
 
@@ -416,5 +416,5 @@ const styles = StyleSheet.create({
   clearLink: { padding: 16, alignItems: 'center', marginTop: 12 },
   footer: { padding: 20, paddingBottom: 28, borderTopWidth: 1 },
   saveBtn: { padding: 16, borderRadius: 14, alignItems: 'center' },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveText: { fontSize: 16, fontWeight: '700' },
 });

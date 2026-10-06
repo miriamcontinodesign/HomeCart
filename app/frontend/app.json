@@ -11,8 +11,8 @@
       "output": "single",
       "name": "HomeCart",
       "shortName": "HomeCart",
-      "themeColor": "#0A0E14",
-      "backgroundColor": "#0A0E14"
+      "themeColor": "#011D2B",
+      "backgroundColor": "#011D2B"
     },
     "plugins": [
       "expo-web-browser",

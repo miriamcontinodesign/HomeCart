@@ -172,8 +172,8 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
             style={[styles.pickButton, { backgroundColor: colors.primary }]}
             onPress={() => fileInputRef.current?.click()}
           >
-            <MaterialCommunityIcons name="image-plus" size={18} color="#fff" />
-            <Text style={styles.pickButtonText}>Take or upload a photo</Text>
+            <MaterialCommunityIcons name="image-plus" size={18} color={colors.onPrimary} />
+            <Text style={[styles.pickButtonText, { color: colors.onPrimary }]}>Take or upload a photo</Text>
           </TouchableOpacity>
           <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
             Tip: get the label in frame and in focus.
@@ -235,8 +235,8 @@ function ScanResultView({
             // Older scans (and replies from models that skip home_matches) only have the summary.
             <>
               <View style={[styles.scoreCircle, { backgroundColor: scoreColor }]}>
-                <Text style={styles.scoreNumber}>{result.match_score}</Text>
-                <Text style={styles.scoreLabel}>MATCH</Text>
+                <Text style={[styles.scoreNumber, { color: colors.onPrimary }]}>{result.match_score}</Text>
+                <Text style={[styles.scoreLabel, { color: colors.onPrimary }]}>MATCH</Text>
               </View>
               <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
                 <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>FOR YOUR CUISINE</Text>
@@ -260,8 +260,8 @@ function ScanResultView({
 
         {onFindStores && (
           <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.primary }]} onPress={onFindStores}>
-            <MaterialCommunityIcons name="store-marker" size={18} color="#fff" />
-            <Text style={styles.findStoresText}>Find in a Store</Text>
+            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
+            <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find in a Store</Text>
           </TouchableOpacity>
         )}
 
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 24,
   },
-  pickButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  pickButtonText: { fontWeight: '700', fontSize: 15 },
   pickHint: { fontSize: 12, marginTop: 14 },
 
   resultContainer: { flex: 1 },
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
     width: 96, height: 96, borderRadius: 48, alignSelf: 'center',
     justifyContent: 'center', alignItems: 'center', marginVertical: 20,
   },
-  scoreNumber: { color: '#fff', fontSize: 32, fontWeight: '800' },
-  scoreLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  scoreNumber: { fontSize: 32, fontWeight: '800' },
+  scoreLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
   section: { padding: 14, borderRadius: 12, marginTop: 10, borderWidth: 1 },
   sectionLabel: { fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 },
   sectionText: { fontSize: 14, lineHeight: 20 },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: 16, borderRadius: 14, marginTop: 16,
   },
-  findStoresText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  findStoresText: { fontWeight: '700', fontSize: 15 },
   scanAgainButton: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 10, borderWidth: 1 },
   scanAgainText: { fontWeight: '600', fontSize: 14 },
 });

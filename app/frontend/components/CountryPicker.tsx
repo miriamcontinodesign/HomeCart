@@ -119,7 +119,7 @@ export default function CountryPicker({
                   }]}
                   onPress={() => onChangeRegion(sel ? '' : r)}
                 >
-                  <Text style={{ color: sel ? '#fff' : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{r}</Text>
+                  <Text style={{ color: sel ? colors.onPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{r}</Text>
                 </TouchableOpacity>
               );
             })}
