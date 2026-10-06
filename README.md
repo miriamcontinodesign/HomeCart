@@ -236,8 +236,8 @@ OPENROUTER_API_KEY=sk-or-v1-...
 GOOGLE_MAPS_API_KEY=<server key>
 
 # Optional: free models + comma-separated backups, tried in order
-LLM_VISION_MODEL=qwen/qwen3.8-27b:free
-LLM_VISION_FALLBACKS=google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openrouter/free
+LLM_VISION_MODEL=dots-studio/dots-3-note-preview:free
+LLM_VISION_FALLBACKS=google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,openrouter/free
 LLM_TEXT_MODEL=google/gemma-4-31b-it:free
 LLM_TEXT_FALLBACKS=nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,openrouter/free
 EOF

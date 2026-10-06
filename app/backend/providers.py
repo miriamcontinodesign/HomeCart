@@ -106,7 +106,9 @@ def _normalize_openai_body(model: str, body: dict) -> dict:
     return body
 
 
-async def _post_openai_shape(base_url: str, key: str, model: str, messages: list, max_tokens: int) -> str:
+async def _post_openai_shape(
+    base_url: str, key: str, model: str, messages: list, max_tokens: int, extra: Optional[dict] = None,
+) -> str:
     """OpenAI-compatible chat completions (OpenRouter, OpenAI direct). Returns the assistant text."""
     headers = {
         "Authorization": f"Bearer {key}",
@@ -114,7 +116,7 @@ async def _post_openai_shape(base_url: str, key: str, model: str, messages: list
         "HTTP-Referer": LLM_APP_REFERRER,
         "X-Title": LLM_APP_TITLE,
     }
-    body = _normalize_openai_body(model, {"model": model, "max_tokens": max_tokens, "messages": messages})
+    body = _normalize_openai_body(model, {"model": model, "max_tokens": max_tokens, "messages": messages, **(extra or {})})
     async with httpx.AsyncClient(timeout=60) as client:
         r = await client.post(f"{base_url}/chat/completions", headers=headers, json=body)
         if r.status_code >= 400:
@@ -208,10 +210,15 @@ async def call_llm(
     else:
         models = [ENV_TEXT_MODEL, *ENV_TEXT_FALLBACKS]
 
+    # The free models we run on are mostly "thinking" models; their hidden reasoning made a
+    # recipe take 25-40s. The output is structured JSON that doesn't benefit from it, and with
+    # reasoning off the same request takes ~7s. OpenRouter-only parameter.
+    extra = {"reasoning": {"enabled": False}} if "openrouter.ai" in ENV_LLM_BASE_URL else None
+
     last_error: Optional[HTTPException] = None
     for model in models:
         try:
-            content = await _post_openai_shape(ENV_LLM_BASE_URL, ENV_LLM_API_KEY, model, messages, max_tokens)
+            content = await _post_openai_shape(ENV_LLM_BASE_URL, ENV_LLM_API_KEY, model, messages, max_tokens, extra)
             if validate:
                 try:
                     validate(content)

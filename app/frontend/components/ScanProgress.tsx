@@ -8,7 +8,7 @@ import { useTheme } from '../theme/ThemeContext';
 // real scans, so the "seconds left" estimate gets realistic after a scan or two.
 
 const STORAGE_KEY = 'homecart_scan_ms';
-const DEFAULT_MS = 30000;      // typical free-model scan
+const DEFAULT_MS = 12000;      // typical free-model scan (reasoning disabled)
 const MIN_MS = 8000;
 const MAX_MS = 90000;
 
