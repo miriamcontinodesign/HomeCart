@@ -15,14 +15,14 @@ Two deployable surfaces plus one Postgres schema, one budget envelope to protect
 **`app/backend/`** — FastAPI on Render free tier (Blueprint service `homecart-backend`; its public URL goes in the frontend's `EXPO_PUBLIC_API_URL`). Four real endpoints:
 - `POST /scan` — vision LLM call returning structured JSON about a product image
 - `POST /recipe` — text LLM call returning structured JSON ingredients for a dish
-- `POST /product-search` — text LLM call: a product from any country ("mascarpone") → its American versions; uses the curated `equivalences` table as a trusted reference and counts against the scan quota
+- `POST /product-search` — text LLM call: a product from any country ("mascarpone") → its American versions; uses the curated `equivalences` table as a trusted reference and counts against the scan quota Scans and searches are both stored in `scans` (`source` = scan/search, `saved` = bookmark, `budget` = AI price-tier estimate; migration 006) and both return the row `id` so the app can bookmark it; the History tab reads that table.
 - `POST /stores/nearby` — Google Places (New) Text Search with cuisine + product-aware ranking
 
 UptimeRobot pings `/healthz` every 5 min to fight Render's 15-min idle spin-down. Render reads `app/backend/render.yaml` as a Blueprint on push to `main`.
 
-**`app/frontend/`** — Expo SDK 54 / React Native 0.81 rendered on web via `react-native-web`, built with `expo export --platform web` into `dist/` and served by Vercel (`vercel.json`; Vercel project root = `app/frontend`). The map uses `@vis.gl/react-google-maps` (Google Maps JavaScript API, advanced markers → needs a Map ID). Magic Lens uses an `<input type="file" capture="environment">` and downscales photos to ≤1280px in a canvas before upload. Tab navigator with 5 tabs (`Home`, `Map`, `MagicLens` center FAB, `List`→labelled "Recipes", `Profile`), inside a centered max-640px column (`AppFrame` in `App.tsx`). `App.tsx` gates rendering on: auth state → profile loaded → onboarding complete → (if `BYOK_ONLY`) BYOK configured → MainTabNavigator.
+**`app/frontend/`** — Expo SDK 54 / React Native 0.81 rendered on web via `react-native-web`, built with `expo export --platform web` into `dist/` and served by Vercel (`vercel.json`; Vercel project root = `app/frontend`). The map uses `@vis.gl/react-google-maps` (Google Maps JavaScript API, advanced markers → needs a Map ID). Magic Lens uses an `<input type="file" capture="environment">` and downscales photos to ≤1280px in a canvas before upload. Tab navigator with 5 visible tabs (`Home`, `Map`, `MagicLens` center FAB, `History`, `Profile`) plus a hidden `List` route (Recipes, opened from Home → More actions), inside a centered max-640px column (`AppFrame` in `App.tsx`). `App.tsx` gates rendering on: auth state → profile loaded → onboarding complete → (if `BYOK_ONLY`) BYOK configured → MainTabNavigator.
 
-**`app/migrations/`** — Numbered SQL files (`001` → `005`) applied manually to Supabase via the SQL editor. There is no migration runner; commit order is human-enforced. `005_daily_usage.sql` is the rate-limit table; **must be applied to Supabase before the backend's `_enforce_daily_quota` will work**.
+**`app/migrations/`** — Numbered SQL files (`001` → `006`) applied manually to Supabase via the SQL editor. There is no migration runner; commit order is human-enforced. `005_daily_usage.sql` is the rate-limit table; **must be applied to Supabase before the backend's `_enforce_daily_quota` will work**.
 
 ### Critical cross-cutting flows
 

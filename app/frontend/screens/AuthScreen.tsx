@@ -13,6 +13,25 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  // Emails a reset link. The link returns to this site; Supabase then fires PASSWORD_RECOVERY,
+  // and App.tsx shows ResetPasswordScreen (see AuthContext `recovering`).
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setResetMessage('Enter your email address above, then tap "Forgot password?" again.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo: window.location.origin });
+    setLoading(false);
+    // Same message whether or not the address has an account, so the form can't be used to
+    // discover who is registered.
+    setResetMessage(error
+      ? `Could not send the reset email: ${error.message}`
+      : `If an account exists for ${trimmed}, we've emailed a link to reset your password.`);
+  };
 
   const handleEmailAuth = async () => {
     if (!email || !password || (isSignUp && !name)) {
@@ -101,6 +120,14 @@ export default function AuthScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
               />
+              {!isSignUp && (
+                <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink} accessibilityRole="button">
+                  <Text style={[styles.forgotText, { color: colors.textAccent }]}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
+              {!!resetMessage && !isSignUp && (
+                <Text style={[styles.resetMessage, { color: colors.textSecondary }]}>{resetMessage}</Text>
+              )}
             </View>
 
             <TouchableOpacity
@@ -133,6 +160,9 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
+  forgotLink: { alignSelf: 'flex-end', marginTop: 10, paddingVertical: 4 },
+  forgotText: { fontSize: 13, fontWeight: '600' },
+  resetMessage: { fontSize: 13, lineHeight: 18, marginTop: 8 },
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   brandWrap: { alignItems: 'center', marginBottom: 36 },

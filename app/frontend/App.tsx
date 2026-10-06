@@ -13,11 +13,13 @@ import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { tokens } from './theme/colors';
 import { loadByokKeys, clearLegacyByokKeys } from './lib/byok';
 import AuthScreen from './screens/AuthScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import ByokOnboardingScreen from './screens/ByokOnboardingScreen';
 import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import ListScreen from './screens/ListScreen';
+import HistoryScreen from './screens/HistoryScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import MagicLensScreen from './screens/MagicLensScreen';
 
@@ -98,13 +100,23 @@ function MainTabNavigator() {
         }}
       />
       <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="history" size={size} color={color} />
+          ),
+        }}
+      />
+      {/* Recipes has no tab of its own (Home → More actions → New Recipe opens it), but it
+          stays a tab route so navigate('List') and its saved state keep working. */}
+      <Tab.Screen
         name="List"
         component={ListScreen}
         options={{
           tabBarLabel: 'Recipes',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="silverware-fork-knife" size={size} color={color} />
-          ),
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
       <Tab.Screen
@@ -121,7 +133,7 @@ function MainTabNavigator() {
 }
 
 function AppContent() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, recovering } = useAuth();
   const { colors } = useTheme();
   // Tracks whether the BYOK-only build has a usable LLM key. `null` until first check.
   const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(BYOK_ONLY ? null : true);
@@ -141,6 +153,11 @@ function AppContent() {
   const refreshLlmKey = () => {
     loadByokKeys().then(k => setHasLlmKey(!!k.llmKey));
   };
+
+  // A password-reset link signs the user in; ask for the new password before anything else.
+  if (recovering && user) {
+    return <ResetPasswordScreen />;
+  }
 
   if (loading) {
     return (

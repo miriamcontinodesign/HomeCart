@@ -352,6 +352,8 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "brand_origin": "<country the brand comes from, e.g. 'Mexico', 'USA', 'Italy' — or null if unknown>",
   "detected_category": "<rice|flour|cheese|spice|sauce|etc>",
   "description": "<1-2 sentences: what this product is and how it is typically used>",
+  "budget": "<estimated US price tier for this product: 'budget', 'mid-range' or 'premium'>",
+  "price_hint": "<rough typical US shelf price and size, e.g. '$3-5 for 4.4 lb' — an estimate, or null>",
   "home_matches": [
     {{
       "name": "<SHORT name of a similar product from the user's home country, MAX 6 words>",
@@ -386,11 +388,14 @@ If the image is unclear or not a food product, use match_score: 0, home_matches:
         result = parse_json_from_response(response_text)
         _coerce_store_types(result)
         _coerce_home_matches(result)
+        result["budget"] = _coerce_budget(result.get("budget"))
 
-        # Persist scan if user authenticated
+        # Persist scan if user authenticated; the id lets the app bookmark it.
         if user_id:
             try:
-                supabase.table("scans").insert({
+                inserted = supabase.table("scans").insert({
+                    "source": "scan",
+                    "budget": result.get("budget"),
                     "user_id": user_id,
                     "image_url": _safe_thumbnail(req.thumbnail_data_url),
                     "detected_product": result.get("detected_product"),
@@ -406,6 +411,7 @@ If the image is unclear or not a food product, use match_score: 0, home_matches:
                     "preferred_store_types": result.get("preferred_store_types") or [],
                     "raw_vision_response": result,
                 }).execute()
+                result["id"] = inserted.data[0]["id"]
             except Exception as e:
                 print(f"[scan] Failed to persist: {e}")
 
@@ -437,6 +443,20 @@ def _curated_equivalent(query: str) -> Optional[dict]:
     return rows[0] if rows else None
 
 
+BUDGET_TIERS = ("budget", "mid-range", "premium")
+
+
+def _coerce_budget(value) -> Optional[str]:
+    v = str(value or "").strip().lower().replace(" ", "-")
+    if v in ("mid", "midrange", "moderate", "medium"):
+        v = "mid-range"
+    if v in ("cheap", "low", "affordable", "value"):
+        v = "budget"
+    if v in ("expensive", "high", "luxury"):
+        v = "premium"
+    return v if v in BUDGET_TIERS else None
+
+
 def _coerce_us_equivalents(result: dict) -> None:
     raw = result.get("us_equivalents")
     if isinstance(raw, dict):
@@ -455,6 +475,9 @@ def _coerce_us_equivalents(result: dict) -> None:
             "match_score": score,
             "aisle": (str(m.get("aisle")).strip() or None) if m.get("aisle") else None,
             "tip": (str(m.get("tip")).strip() or None) if m.get("tip") else None,
+            "difference": (str(m.get("difference")).strip() or None) if m.get("difference") else None,
+            "budget": _coerce_budget(m.get("budget")),
+            "price_hint": (str(m.get("price_hint")).strip() or None) if m.get("price_hint") else None,
         })
     items.sort(key=lambda m: m["match_score"], reverse=True)
     result["us_equivalents"] = items[:3]
@@ -463,6 +486,7 @@ def _coerce_us_equivalents(result: dict) -> None:
 @app.post("/product-search")
 async def product_search(
     req: ProductSearchRequest,
+    user_id: Optional[str] = Depends(get_user_id),
     byok: BYOK = Depends(get_byok),
 ):
     """Type a product from any country (e.g. "mascarpone") -> its American versions."""
@@ -504,7 +528,10 @@ Output ONLY valid JSON (no preamble, no markdown fences):
       "brand": "<common US brand, or null>",
       "match_score": <0-100>,
       "aisle": "<where in a typical US grocery store>",
-      "tip": "<one sentence on using it in place of the original>"
+      "difference": "<one short sentence: how it differs from the original>",
+      "tip": "<one sentence on using it in place of the original>",
+      "budget": "<estimated US price tier: 'budget', 'mid-range' or 'premium'>",
+      "price_hint": "<rough typical US shelf price and size, e.g. '$4-6 for 8 oz' — an estimate, or null>"
     }}
   ],
   "ai_tip": "<one practical tip>",
@@ -529,6 +556,28 @@ If "{query}" is not a food product, return us_equivalents: [] and explain in des
         _coerce_us_equivalents(result)
         result["query"] = query
         result["curated"] = bool(curated)
+
+        # Searches share the scans table (source="search") so History lists both.
+        if user_id:
+            best = (result["us_equivalents"] or [None])[0]
+            try:
+                inserted = supabase.table("scans").insert({
+                    "source": "search",
+                    "budget": best.get("budget") if best else None,
+                    "user_id": user_id,
+                    "detected_product": result.get("product_name") or query,
+                    "detected_brand": best["brand"] if best else None,
+                    "cultural_equivalent": (
+                        best["name"] + (" (" + best["brand"] + ")" if best.get("brand") else "") if best else None
+                    ),
+                    "match_score": best["match_score"] if best else 0,
+                    "availability_breadth": result.get("availability_breadth"),
+                    "preferred_store_types": result.get("preferred_store_types") or [],
+                    "raw_vision_response": result,
+                }).execute()
+                result["id"] = inserted.data[0]["id"]
+            except Exception as e:
+                print(f"[product-search] Failed to persist: {e}")
         return result
     except json.JSONDecodeError as e:
         raise HTTPException(500, f"AI response parse error: {e}")

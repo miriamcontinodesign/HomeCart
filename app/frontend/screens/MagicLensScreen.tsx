@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,6 +11,8 @@ import ErrorCard from '../components/ErrorCard';
 import { describeError, FriendlyError } from '../lib/errors';
 import { countryName } from '../lib/countries';
 import ScanProgress, { recordScanDuration } from '../components/ScanProgress';
+import SaveButton from '../components/SaveButton';
+import { BudgetTag, BestMatchTag, BestValueTag, bestValueIndex } from '../components/ProductTags';
 
 type HomeMatch = {
   name: string;
@@ -24,9 +26,13 @@ type UsEquivalent = {
   match_score: number;
   aisle?: string | null;
   tip?: string | null;
+  difference?: string | null;
+  budget?: string | null;
+  price_hint?: string | null;
 };
 
 type ProductSearchResult = {
+  id?: string;           // history row id (present when signed in) — used for bookmarking
   query: string;
   product_name: string;
   origin_country?: string | null;
@@ -38,6 +44,9 @@ type ProductSearchResult = {
 };
 
 type ScanResult = {
+  id?: string;
+  budget?: string | null;
+  price_hint?: string | null;
   detected_product: string;
   detected_brand?: string;
   brand_origin?: string | null;
@@ -78,7 +87,7 @@ async function prepareImage(file: File): Promise<{ base64: string; dataUrl: stri
   return { base64: dataUrl.split(',')[1], dataUrl, thumbnail };
 }
 
-export default function MagicLensScreen({ navigation }: { navigation?: any }) {
+export default function MagicLensScreen({ navigation, route }: { navigation?: any; route?: any }) {
   const { profile } = useAuth();
   const { colors } = useTheme();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -96,6 +105,8 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
   const [searchResult, setSearchResult] = useState<ProductSearchResult | null>(null);
   const [lastQuery, setLastQuery] = useState('');
   const [lastAction, setLastAction] = useState<'scan' | 'search'>('scan');
+  // Bookmark state of the result on screen (true when reopened from History as saved).
+  const [savedFlag, setSavedFlag] = useState(false);
 
   const runSearch = async (raw?: string) => {
     const q = (raw ?? query).trim();
@@ -123,6 +134,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
       recordScanDuration(Date.now() - startedAt, 'search');
       setSearchDone(true);
       await new Promise(r => setTimeout(r, 400));
+      setSavedFlag(false);
       setSearchResult(data);
       setQuery('');
     } catch (err) {
@@ -168,6 +180,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
       // Let the bar visibly reach 100% before swapping in the result.
       setScanDone(true);
       await new Promise(r => setTimeout(r, 400));
+      setSavedFlag(false);
       setResult(data);
     } catch (err) {
       setCapturedImage(null);
@@ -186,10 +199,36 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
 
   const reset = () => { setCapturedImage(null); setResult(null); setSearchResult(null); };
 
+  // Entry points from other tabs: Home's search box (searchQuery) and History (openHistory).
+  // requestedAt makes repeat requests with the same payload re-trigger.
+  useEffect(() => {
+    const p = route?.params;
+    if (!p) return;
+    if (p.searchQuery) {
+      setResult(null);
+      setSearchResult(null);
+      runSearch(p.searchQuery);
+    } else if (p.openHistory) {
+      const h = p.openHistory;
+      setError(null);
+      setSavedFlag(!!h.saved);
+      if (h.source === 'search') {
+        setResult(null);
+        setSearchResult({ ...h.result, id: h.id, us_equivalents: h.result.us_equivalents || [] });
+      } else {
+        setSearchResult(null);
+        setCapturedImage(h.image || null);
+        setResult({ ...h.result, id: h.id });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.requestedAt]);
+
   if (searchResult) {
     return (
       <ProductSearchResultView
         result={searchResult}
+        saved={savedFlag}
         onReset={reset}
         onFindStores={() => navigation?.navigate('Map', {
           returnTo: 'MagicLens',
@@ -209,6 +248,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
     return (
       <ScanResultView
         result={result}
+        saved={savedFlag}
         image={capturedImage}
         onReset={reset}
         homeCountry={countryName(profile?.home_country)}
@@ -311,15 +351,19 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
 }
 
 function ProductSearchResultView({
-  result, onReset, onFindStores, colors,
+  result, saved, onReset, onFindStores, colors,
 }: {
-  result: ProductSearchResult; onReset: () => void; onFindStores: () => void; colors: any;
+  result: ProductSearchResult; saved: boolean; onReset: () => void; onFindStores: () => void; colors: any;
 }) {
+  const valueIdx = bestValueIndex(result.us_equivalents);
   return (
     <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bgApp }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
         <View style={[styles.resultCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
-          <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.product_name || result.query}</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.productName, { color: colors.textPrimary, flex: 1 }]}>{result.product_name || result.query}</Text>
+            <SaveButton id={result.id} saved={saved} />
+          </View>
           {!!result.origin_country && (
             <Text style={[styles.productBrand, { color: colors.textSecondary }]}>From {result.origin_country}</Text>
           )}
@@ -338,12 +382,23 @@ function ProductSearchResultView({
                       <Text style={[styles.matchPillText, { color: matchTone(e.match_score).text }]}>{e.match_score}% match</Text>
                     </View>
                   </View>
+                  <View style={styles.tagRow}>
+                    {i === 0 && result.us_equivalents.length > 1 && <BestMatchTag />}
+                    {valueIdx === i && <BestValueTag />}
+                    <BudgetTag budget={e.budget} />
+                  </View>
                   {!!e.brand && <Text style={[styles.equivMeta, { color: colors.textAccent }]}>{e.brand}</Text>}
+                  {!!e.price_hint && (
+                    <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>~{e.price_hint} (estimate)</Text>
+                  )}
                   {!!e.aisle && (
                     <View style={styles.aisleRow}>
                       <MaterialCommunityIcons name="map-marker" size={13} color={colors.textSecondary} />
                       <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>{e.aisle}</Text>
                     </View>
+                  )}
+                  {!!e.difference && (
+                    <Text style={[styles.sectionText, { color: colors.textPrimary, marginTop: 4 }]}>How it differs: {e.difference}</Text>
                   )}
                   {!!e.tip && <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 4 }]}>{e.tip}</Text>}
                 </View>
@@ -381,9 +436,9 @@ function ProductSearchResultView({
 }
 
 function ScanResultView({
-  result, image, homeCountry, onReset, onFindStores, colors,
+  result, saved, image, homeCountry, onReset, onFindStores, colors,
 }: {
-  result: ScanResult; image: string | null; homeCountry: string; onReset: () => void; onFindStores?: () => void; colors: any;
+  result: ScanResult; saved: boolean; image: string | null; homeCountry: string; onReset: () => void; onFindStores?: () => void; colors: any;
 }) {
   const overall = matchTone(result.match_score);
   const matches = result.home_matches || [];
@@ -394,11 +449,22 @@ function ScanResultView({
         {image && <Image source={{ uri: image }} style={styles.resultImage} />}
 
         <View style={[styles.resultCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
-          <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.detected_product}</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.productName, { color: colors.textPrimary, flex: 1 }]}>{result.detected_product}</Text>
+            <SaveButton id={result.id} saved={saved} />
+          </View>
           {!!result.detected_brand && (
             <Text style={[styles.productBrand, { color: colors.textSecondary }]}>
               {result.detected_brand}{result.brand_origin ? ` (${result.brand_origin})` : ''}
             </Text>
+          )}
+          {(!!result.budget || !!result.price_hint) && (
+            <View style={[styles.tagRow, { marginTop: 8 }]}>
+              <BudgetTag budget={result.budget} />
+              {!!result.price_hint && (
+                <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>~{result.price_hint} (estimate)</Text>
+              )}
+            </View>
           )}
           {!!result.description && (
             <Text style={[styles.description, { color: colors.textSecondary }]}>{result.description}</Text>
@@ -499,6 +565,8 @@ const styles = StyleSheet.create({
   productBrand: { fontSize: 13, marginTop: 4 },
   description: { fontSize: 14, lineHeight: 20, marginTop: 10, marginBottom: 6 },
   matchRow: { paddingVertical: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 },
   matchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
   matchName: { flex: 1, fontSize: 15, fontWeight: '700' },
   matchPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },

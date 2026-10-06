@@ -32,6 +32,8 @@ type AuthContextType = {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  recovering: boolean;            // true after opening a password-reset link
+  finishRecovery: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   // The user whose profile is loaded (or loading); see onAuthStateChange below.
   const userIdRef = useRef<string | null>(null);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,7 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(session);
       setUser(session?.user ?? null);
       // supabase-js re-emits events for the same user on token refresh and when a browser
@@ -124,7 +128,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{
+      session, user, profile, loading, signOut, refreshProfile,
+      recovering, finishRecovery: () => setRecovering(false),
+    }}>
       {children}
     </AuthContext.Provider>
   );

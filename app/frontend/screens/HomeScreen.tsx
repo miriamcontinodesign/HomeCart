@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,12 +27,23 @@ interface RecentList {
   created_at: string;
 }
 
+const EXAMPLE_PRODUCTS = ['mascarpone', 'gochujang', 'queso fresco', 'paneer'];
+
 export default function HomeScreen({ navigation }: any) {
   const { user, profile, signOut } = useAuth();
   const { colors } = useTheme();
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [recentLists, setRecentLists] = useState<RecentList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+
+  // The search runs on the Magic Lens screen, which shows progress and the result.
+  const search = (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setQuery('');
+    navigation?.navigate('MagicLens', { searchQuery: trimmed, requestedAt: Date.now() });
+  };
 
   const loadRecent = useCallback(async () => {
     if (!user) return;
@@ -121,21 +132,61 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Magic Lens hero CTA */}
-        <TouchableOpacity
-          onPress={() => navigation?.navigate('MagicLens')}
-          style={[styles.heroCard, { backgroundColor: colors.actionPrimary }]}
-          activeOpacity={0.85}
-        >
-          <View style={styles.heroLeft}>
-            <Text style={[styles.heroEyebrow, { color: colors.onActionPrimary }]}>MAGIC LENS</Text>
-            <Text style={[styles.heroTitle, { color: colors.onActionPrimary }]}>Scan any product</Text>
-            <Text style={[styles.heroSub, { color: colors.onActionPrimary }]}>Translate it to {cuisineLabel} in seconds</Text>
+        {/* Scan on one side, search on the other */}
+        <View style={styles.entryRow}>
+          <TouchableOpacity
+            onPress={() => navigation?.navigate('MagicLens')}
+            style={[styles.entryCard, { backgroundColor: colors.actionPrimary }]}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Scan a product with Magic Lens"
+          >
+            <MaterialCommunityIcons name="scan-helper" size={30} color={colors.onActionPrimary} />
+            <Text style={[styles.entryTitle, { color: colors.onActionPrimary }]}>Scan</Text>
+            <Text style={[styles.entrySub, { color: colors.onActionPrimary }]}>
+              Photo of a US product → {cuisineLabel}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.entryCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, borderWidth: 1 }]}>
+            <MaterialCommunityIcons name="magnify" size={30} color={colors.accentIcon} />
+            <Text style={[styles.entryTitle, { color: colors.textPrimary }]}>Search</Text>
+            <Text style={[styles.entrySub, { color: colors.textSecondary }]}>A product from home → its US version</Text>
+            <View style={styles.searchRow}>
+              <TextInput
+                style={[styles.searchInput, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault, color: colors.textPrimary }]}
+                placeholder="e.g. paneer"
+                placeholderTextColor={colors.textPlaceholder}
+                value={query}
+                onChangeText={setQuery}
+                onSubmitEditing={() => search(query)}
+                returnKeyType="search"
+                accessibilityLabel="Search a product from home"
+              />
+              <TouchableOpacity
+                onPress={() => search(query)}
+                disabled={!query.trim()}
+                style={[styles.searchGo, { backgroundColor: colors.actionPrimary, opacity: query.trim() ? 1 : 0.5 }]}
+                accessibilityLabel="Find the US version"
+              >
+                <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onActionPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.heroIcon}>
-            <MaterialCommunityIcons name="scan-helper" size={56} color={colors.onActionPrimary} />
-          </View>
-        </TouchableOpacity>
+        </View>
+
+        <View style={styles.exampleRow}>
+          <Text style={[styles.exampleLabel, { color: colors.textSecondary }]}>Try:</Text>
+          {EXAMPLE_PRODUCTS.map(p => (
+            <TouchableOpacity
+              key={p}
+              onPress={() => search(p)}
+              style={[styles.exampleChip, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
+            >
+              <Text style={[styles.exampleText, { color: colors.textPrimary }]}>{p}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* More actions (scanning lives in the hero card above, Profile in the tab bar) */}
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>More actions</Text>
@@ -163,7 +214,7 @@ export default function HomeScreen({ navigation }: any) {
         ) : recentScans.length > 0 ? (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Scans</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent searches</Text>
               <View style={styles.headerActions}>
                 <TouchableOpacity onPress={clearAllScans} accessibilityRole="button" accessibilityLabel="Clear all scans">
                   <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600' }}>Clear all</Text>
@@ -270,20 +321,17 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, marginTop: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 18, fontWeight: '700' },
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 28,
-    minHeight: 130,
-    overflow: 'hidden',
-  },
-  heroLeft: { flex: 1 },
-  heroEyebrow: { opacity: 0.85, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 4 },
-  heroTitle: { fontSize: 22, fontWeight: '800' },
-  heroSub: { opacity: 0.92, fontSize: 13, marginTop: 6, lineHeight: 18 },
-  heroIcon: { opacity: 0.95 },
+  entryRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  entryCard: { flex: 1, borderRadius: 18, padding: 16, gap: 4 },
+  entryTitle: { fontSize: 18, fontWeight: '800', marginTop: 6 },
+  entrySub: { fontSize: 12, lineHeight: 16 },
+  searchRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
+  searchInput: { flex: 1, minWidth: 0, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14 },
+  searchGo: { width: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  exampleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 8 },
+  exampleLabel: { fontSize: 12, fontWeight: '600', marginRight: 2 },
+  exampleChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1 },
+  exampleText: { fontSize: 12, fontWeight: '500' },
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 14, marginTop: 6 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 10 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
