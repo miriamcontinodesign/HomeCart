@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { matchTone, tones } from '../theme/colors';
 import { apiFetchJson } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
@@ -150,8 +151,6 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
     }
   };
 
-  const scoreColor = (s: number) => s >= 75 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow;
-
   // Home's "Recipe Lists" cards pass openListId: open the saved list straight from the
   // database instead of re-running the AI import (slow, and it used up the daily quota).
   useEffect(() => {
@@ -190,11 +189,11 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
     <>
       {recipe.ingredients.length > 0 && navigation && (
         <TouchableOpacity
-          style={[styles.findStoresButton, { backgroundColor: colors.primary }]}
+          style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]}
           onPress={() => findStoresForList(recipe)}
         >
-          <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
-          <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find stores for this list</Text>
+          <MaterialCommunityIcons name="store-marker" size={18} color={colors.onActionPrimary} />
+          <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find stores for this list</Text>
         </TouchableOpacity>
       )}
       <View style={{ marginTop: 24 }}>
@@ -216,42 +215,42 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
                 },
               });
             }}
-            style={[styles.ingredientCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.ingredientCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
           >
             <View style={styles.ingredientHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.originalName, { color: colors.textPrimary }]}>{ing.original_ingredient}</Text>
-                <Text style={[styles.usName, { color: colors.primary }]}>
+                <Text style={[styles.usName, { color: colors.textAccent }]}>
                   {ing.us_brand ? `${ing.us_brand} — ` : ''}{ing.us_equivalent_product}
                 </Text>
               </View>
-              <View style={[styles.scoreBadge, { backgroundColor: scoreColor(ing.match_score) + '22' }]}>
-                <Text style={[styles.scoreBadgeText, { color: scoreColor(ing.match_score) }]}>{ing.match_score}</Text>
+              <View style={[styles.scoreBadge, { backgroundColor: matchTone(ing.match_score).bg }]}>
+                <Text style={[styles.scoreBadgeText, { color: matchTone(ing.match_score).text }]}>{ing.match_score}</Text>
               </View>
             </View>
 
             {!!ing.aisle_location && (
               <View style={styles.aisleRow}>
-                <MaterialCommunityIcons name="map-marker" size={14} color={colors.textTertiary} />
-                <Text style={[styles.aisleText, { color: colors.textTertiary }]}>{ing.aisle_location}</Text>
+                <MaterialCommunityIcons name="map-marker" size={14} color={colors.textSecondary} />
+                <Text style={[styles.aisleText, { color: colors.textSecondary }]}>{ing.aisle_location}</Text>
               </View>
             )}
 
             {!!ing.ai_tip && (
-              <View style={[styles.tipBox, { backgroundColor: colors.primarySubtle }]}>
-                <Text style={[styles.tipText, { color: colors.textSecondary }]}>💡 {ing.ai_tip}</Text>
+              <View style={[styles.tipBox, { backgroundColor: colors.highlightBg }]}>
+                <Text style={[styles.tipText, { color: colors.highlightText }]}>💡 {ing.ai_tip}</Text>
               </View>
             )}
 
             <View style={styles.ingredientFooter}>
               {ing.can_make_at_home && (
-                <View style={[styles.homeBadge, { backgroundColor: colors.cultural + '22' }]}>
-                  <Text style={[styles.homeBadgeText, { color: colors.cultural }]}>🏠 Make at home</Text>
+                <View style={[styles.homeBadge, { backgroundColor: colors.highlightFill }]}>
+                  <Text style={[styles.homeBadgeText, { color: colors.onHighlightFill }]}>🏠 Make at home</Text>
                 </View>
               )}
-              <View style={[styles.findOneChip, { backgroundColor: colors.primarySubtle }]}>
-                <MaterialCommunityIcons name="store-marker" size={13} color={colors.primary} />
-                <Text style={[styles.findOneText, { color: colors.primary }]}>Find stores →</Text>
+              <View style={[styles.findOneChip, { backgroundColor: colors.accentSubtle }]}>
+                <MaterialCommunityIcons name="store-marker" size={13} color={colors.accentIcon} />
+                <Text style={[styles.findOneText, { color: colors.textAccent }]}>Find stores →</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -261,23 +260,23 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Recipes</Text>
 
         {/* Section switcher */}
-        <View style={[styles.segment, { backgroundColor: colors.surface, borderColor: colors.border }]} accessibilityRole="tablist">
+        <View style={[styles.segment, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]} accessibilityRole="tablist">
           {([['import', 'Import a recipe'], ['saved', `Saved${saved.length ? ` (${saved.length})` : ''}`]] as const).map(([key, label]) => {
             const active = section === key;
             return (
               <TouchableOpacity
                 key={key}
                 onPress={() => setSection(key)}
-                style={[styles.segmentItem, active && { backgroundColor: colors.primary }]}
+                style={[styles.segmentItem, active && { backgroundColor: colors.actionPrimary }]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.segmentText, { color: active ? colors.onPrimary : colors.textSecondary }]}>{label}</Text>
+                <Text style={[styles.segmentText, { color: active ? colors.onActionPrimary : colors.textSecondary }]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -291,26 +290,26 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
 
             <View style={styles.inputRow}>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                 placeholder="e.g. biryani, pasta carbonara..."
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textPlaceholder}
                 value={dish}
                 onChangeText={setDish}
                 onSubmitEditing={() => importRecipe()}
                 returnKeyType="go"
               />
               <TouchableOpacity
-                style={[styles.importButton, { backgroundColor: colors.primary, opacity: !dish.trim() || loading ? 0.5 : 1 }]}
+                style={[styles.importButton, { backgroundColor: colors.actionPrimary, opacity: !dish.trim() || loading ? 0.5 : 1 }]}
                 onPress={() => importRecipe()}
                 disabled={loading || !dish.trim()}
                 accessibilityLabel="Import recipe"
               >
-                {loading ? <ActivityIndicator color={colors.onPrimary} /> : <MaterialCommunityIcons name="auto-fix" size={22} color={colors.onPrimary} />}
+                {loading ? <ActivityIndicator color={colors.onActionPrimary} /> : <MaterialCommunityIcons name="auto-fix" size={22} color={colors.onActionPrimary} />}
               </TouchableOpacity>
             </View>
 
             {loading && (
-              <Text style={[styles.loadingHint, { color: colors.textTertiary }]}>
+              <Text style={[styles.loadingHint, { color: colors.textSecondary }]}>
                 Building your shopping list… this usually takes 10–20 seconds.
               </Text>
             )}
@@ -327,13 +326,13 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
 
             {!imported && !loading && !error && (
               <View style={{ marginTop: 24 }}>
-                <Text style={[styles.suggestLabel, { color: colors.textTertiary }]}>TRY ONE OF THESE</Text>
+                <Text style={[styles.suggestLabel, { color: colors.textSecondary }]}>TRY ONE OF THESE</Text>
                 <View style={styles.chipWrap}>
                   {SUGGESTED_DISHES.map(d => (
                     <TouchableOpacity
                       key={d}
                       onPress={() => { setDish(d); importRecipe(d); }}
-                      style={[styles.suggestChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      style={[styles.suggestChip, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
                     >
                       <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '500' }}>{d}</Text>
                     </TouchableOpacity>
@@ -347,22 +346,22 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
         ) : openSaved ? (
           <>
             <TouchableOpacity onPress={() => setOpenSaved(null)} style={styles.backLink} accessibilityRole="button">
-              <MaterialCommunityIcons name="arrow-left" size={18} color={colors.primary} />
-              <Text style={[styles.backLinkText, { color: colors.primary }]}>Saved recipes</Text>
+              <MaterialCommunityIcons name="arrow-left" size={18} color={colors.accentIcon} />
+              <Text style={[styles.backLinkText, { color: colors.textAccent }]}>Saved recipes</Text>
             </TouchableOpacity>
             {renderRecipe(openSaved)}
           </>
         ) : savedLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+          <ActivityIndicator color={colors.accentIcon} style={{ marginTop: 32 }} />
         ) : saved.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="book-open-variant" size={32} color={colors.textTertiary} />
+          <View style={[styles.emptyCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+            <MaterialCommunityIcons name="book-open-variant" size={32} color={colors.textSecondary} />
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No saved recipes yet</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               Every recipe you import is saved here automatically.
             </Text>
-            <TouchableOpacity onPress={() => setSection('import')} style={[styles.emptyButton, { backgroundColor: colors.primary }]}>
-              <Text style={{ color: colors.onPrimary, fontWeight: '700' }}>Import a recipe</Text>
+            <TouchableOpacity onPress={() => setSection('import')} style={[styles.emptyButton, { backgroundColor: colors.actionPrimary }]}>
+              <Text style={{ color: colors.onActionPrimary, fontWeight: '700' }}>Import a recipe</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -371,22 +370,22 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
               <TouchableOpacity
                 key={recipe.id}
                 onPress={() => openSavedRecipe(recipe)}
-                style={[styles.savedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.savedCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
                 accessibilityRole="button"
               >
-                <View style={[styles.savedIcon, { backgroundColor: colors.primarySubtle }]}>
-                  <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={colors.primary} />
+                <View style={[styles.savedIcon, { backgroundColor: colors.accentSubtle }]}>
+                  <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={colors.accentIcon} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.savedTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                     {recipe.source_dish || recipe.title}
                   </Text>
-                  <Text style={[styles.savedMeta, { color: colors.textTertiary }]}>
+                  <Text style={[styles.savedMeta, { color: colors.textSecondary }]}>
                     {recipe.item_count} ingredients · {formatDate(recipe.created_at)}
                   </Text>
                 </View>
                 {openingId === recipe.id ? (
-                  <ActivityIndicator color={colors.primary} />
+                  <ActivityIndicator color={colors.accentIcon} />
                 ) : (
                   <TouchableOpacity
                     onPress={() => deleteSavedRecipe(recipe)}
@@ -395,7 +394,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
                     accessibilityLabel={`Delete recipe: ${recipe.source_dish || recipe.title}`}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textTertiary} />
+                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>

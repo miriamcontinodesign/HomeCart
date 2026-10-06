@@ -147,7 +147,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>LLM API Key</Text>
@@ -162,7 +162,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
 
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={colors.accentIcon} />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -178,7 +178,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
                 colors={colors}
               />
               {keys.llmKey ? (
-                <Text style={[styles.fieldHint, { color: colors.textTertiary }]}>
+                <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>
                   Detected: {providerDisplayName(detectedProvider)} (from key prefix)
                 </Text>
               ) : null}
@@ -186,7 +186,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
               <View style={styles.linkRow}>
                 {LLM_PROVIDER_LINKS.map(l => (
                   <TouchableOpacity key={l.url} onPress={() => Linking.openURL(l.url)}>
-                    <Text style={[styles.linkText, { color: colors.primary }]}>{l.label} →</Text>
+                    <Text style={[styles.linkText, { color: colors.textAccent }]}>{l.label} →</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -196,10 +196,10 @@ export default function SettingsScreen({ visible, onClose }: Props) {
               <Section title="Models" icon="brain"
                 description={`Only ${providerDisplayName(detectedProvider)} models are shown — these are the only ones that will work with your key.`}
                 colors={colors}>
-                <Text style={[styles.fieldLabel, { color: colors.textTertiary }]}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
                   VISION MODEL (product scans)
                   {orFetching && detectedProvider === 'openrouter' && (
-                    <Text style={{ color: colors.textTertiary, fontSize: 10 }}>  · fetching live list…</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 10 }}>  · fetching live list…</Text>
                   )}
                 </Text>
                 <ModelButton
@@ -209,7 +209,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
                   onPress={() => setModelPicker({ kind: 'vision' })}
                 />
 
-                <Text style={[styles.fieldLabel, { color: colors.textTertiary, marginTop: 14 }]}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary, marginTop: 14 }]}>
                   TEXT MODEL (recipe parsing)
                 </Text>
                 <ModelButton
@@ -223,19 +223,19 @@ export default function SettingsScreen({ visible, onClose }: Props) {
 
             {keys.llmKey ? (
               <TouchableOpacity onPress={onClearAll} style={styles.clearLink}>
-                <Text style={{ color: colors.error, fontSize: 13, fontWeight: '600' }}>Clear key</Text>
+                <Text style={{ color: colors.errorText, fontSize: 13, fontWeight: '600' }}>Clear key</Text>
               </TouchableOpacity>
             ) : null}
           </ScrollView>
         )}
 
-        <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.bg }]}>
+        <View style={[styles.footer, { borderTopColor: colors.borderDefault, backgroundColor: colors.bgApp }]}>
           <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: colors.primary, opacity: saving ? 0.5 : 1 }]}
+            style={[styles.saveBtn, { backgroundColor: colors.actionPrimary, opacity: saving ? 0.5 : 1 }]}
             onPress={onSave}
             disabled={saving}
           >
-            {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={[styles.saveText, { color: colors.onPrimary }]}>Save</Text>}
+            {saving ? <ActivityIndicator color={colors.onActionPrimary} /> : <Text style={[styles.saveText, { color: colors.onActionPrimary }]}>Save</Text>}
           </TouchableOpacity>
         </View>
 
@@ -261,10 +261,10 @@ function Section({ title, icon, description, colors, children }: {
   title: string; icon: any; description: string; colors: any; children: React.ReactNode;
 }) {
   return (
-    <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.section, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
       <View style={styles.sectionHeader}>
-        <View style={[styles.sectionIcon, { backgroundColor: colors.primarySubtle }]}>
-          <MaterialCommunityIcons name={icon} size={18} color={colors.primary} />
+        <View style={[styles.sectionIcon, { backgroundColor: colors.accentSubtle }]}>
+          <MaterialCommunityIcons name={icon} size={18} color={colors.accentIcon} />
         </View>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{title}</Text>
       </View>
@@ -279,12 +279,12 @@ function KeyInput({ value, onChangeText, placeholder, reveal, onToggleReveal, co
   reveal: boolean; onToggleReveal: () => void; colors: any;
 }) {
   return (
-    <View style={[styles.inputRow, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+    <View style={[styles.inputRow, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textTertiary}
+        placeholderTextColor={colors.textPlaceholder}
         secureTextEntry={!reveal}
         autoCapitalize="none"
         autoCorrect={false}
@@ -292,7 +292,7 @@ function KeyInput({ value, onChangeText, placeholder, reveal, onToggleReveal, co
         style={[styles.input, { color: colors.textPrimary }]}
       />
       <TouchableOpacity onPress={onToggleReveal} style={styles.revealBtn}>
-        <MaterialCommunityIcons name={reveal ? 'eye-off' : 'eye'} size={18} color={colors.textTertiary} />
+        <MaterialCommunityIcons name={reveal ? 'eye-off' : 'eye'} size={18} color={colors.textSecondary} />
       </TouchableOpacity>
     </View>
   );
@@ -302,18 +302,18 @@ function ModelButton({ model, fallbackLabel, colors, onPress }: {
   model: ModelOption | null; fallbackLabel: string; colors: any; onPress: () => void;
 }) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.modelButton, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+    <TouchableOpacity onPress={onPress} style={[styles.modelButton, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
       <View style={{ flex: 1 }}>
         <Text style={[styles.modelButtonLabel, { color: colors.textPrimary }]}>
           {model?.label || fallbackLabel}
         </Text>
         {model && (
-          <Text style={[styles.modelButtonPrice, { color: colors.textTertiary }]}>
+          <Text style={[styles.modelButtonPrice, { color: colors.textSecondary }]}>
             {formatPrice(model.inputPerM)} in · {formatPrice(model.outputPerM)} out per 1M tokens
           </Text>
         )}
       </View>
-      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textTertiary} />
+      <MaterialCommunityIcons name="chevron-down" size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -324,7 +324,7 @@ function ModelPickerModal({ visible, kind, models, currentId, colors, onPick, on
 }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -350,24 +350,24 @@ function ModelPickerModal({ visible, kind, models, currentId, colors, onPick, on
               <TouchableOpacity
                 onPress={() => onPick(item.id)}
                 style={[styles.modelRow, {
-                  backgroundColor: colors.surface,
-                  borderColor: isActive ? colors.primary : colors.border,
+                  backgroundColor: colors.bgSurface,
+                  borderColor: isActive ? colors.actionPrimary : colors.borderDefault,
                   borderWidth: isActive ? 2 : 1,
                 }]}
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.modelRowLabel, { color: colors.textPrimary }]}>{item.label}</Text>
-                  <Text style={[styles.modelRowId, { color: colors.textTertiary }]}>{item.id}</Text>
+                  <Text style={[styles.modelRowId, { color: colors.textSecondary }]}>{item.id}</Text>
                   <Text style={[styles.modelRowPrice, { color: colors.textSecondary }]}>
                     {formatPrice(item.inputPerM)} in · {formatPrice(item.outputPerM)} out / 1M
                     {item.vision ? '  · 👁 vision' : ''}
                   </Text>
                   {item.notes && (
-                    <Text style={[styles.modelRowNotes, { color: colors.textTertiary }]}>{item.notes}</Text>
+                    <Text style={[styles.modelRowNotes, { color: colors.textSecondary }]}>{item.notes}</Text>
                   )}
                 </View>
                 {isActive && (
-                  <MaterialCommunityIcons name="check-circle" size={22} color={colors.primary} />
+                  <MaterialCommunityIcons name="check-circle" size={22} color={colors.accentIcon} />
                 )}
               </TouchableOpacity>
             );

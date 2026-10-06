@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { matchTone, tones } from '../theme/colors';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
@@ -101,15 +102,13 @@ export default function HomeScreen({ navigation }: any) {
     : 'your cuisine';
 
   const QUICK_ACTIONS = [
-    { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: colors.scoreMid, onPress: () => navigation?.navigate('List') },
-    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: colors.scoreLow, onPress: () => navigation?.navigate('Map', {}) },
+    { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('List') },
+    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('Map', {}) },
   ];
 
-  const scoreColor = (s: number) => s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow;
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Greeting */}
         <View style={styles.header}>
@@ -117,24 +116,24 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {firstName} <Text style={{ fontSize: 22 }}>{flag}</Text></Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Mapping {cuisineLabel} to your local stores</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation?.navigate('Profile')} style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.avatarText, { color: colors.onPrimary }]}>{firstName.charAt(0).toUpperCase()}</Text>
+          <TouchableOpacity onPress={() => navigation?.navigate('Profile')} style={[styles.avatar, { backgroundColor: colors.actionPrimary }]}>
+            <Text style={[styles.avatarText, { color: colors.onActionPrimary }]}>{firstName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Magic Lens hero CTA */}
         <TouchableOpacity
           onPress={() => navigation?.navigate('MagicLens')}
-          style={[styles.heroCard, { backgroundColor: colors.primary }]}
+          style={[styles.heroCard, { backgroundColor: colors.actionPrimary }]}
           activeOpacity={0.85}
         >
           <View style={styles.heroLeft}>
-            <Text style={[styles.heroEyebrow, { color: colors.onPrimary }]}>MAGIC LENS</Text>
-            <Text style={[styles.heroTitle, { color: colors.onPrimary }]}>Scan any product</Text>
-            <Text style={[styles.heroSub, { color: colors.onPrimary }]}>Translate it to {cuisineLabel} in seconds</Text>
+            <Text style={[styles.heroEyebrow, { color: colors.onActionPrimary }]}>MAGIC LENS</Text>
+            <Text style={[styles.heroTitle, { color: colors.onActionPrimary }]}>Scan any product</Text>
+            <Text style={[styles.heroSub, { color: colors.onActionPrimary }]}>Translate it to {cuisineLabel} in seconds</Text>
           </View>
           <View style={styles.heroIcon}>
-            <MaterialCommunityIcons name="scan-helper" size={56} color={colors.onPrimary} />
+            <MaterialCommunityIcons name="scan-helper" size={56} color={colors.onActionPrimary} />
           </View>
         </TouchableOpacity>
 
@@ -145,10 +144,10 @@ export default function HomeScreen({ navigation }: any) {
             <TouchableOpacity
               key={action.id}
               onPress={action.onPress}
-              style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.actionCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconWrap, { backgroundColor: action.color + '22' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: colors.accentSubtle }]}>
                 <MaterialCommunityIcons name={action.icon} size={26} color={action.color} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.textPrimary }]}>{action.label}</Text>
@@ -159,7 +158,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* Recent scans */}
         {loading ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={colors.accentIcon} />
           </View>
         ) : recentScans.length > 0 ? (
           <>
@@ -170,26 +169,26 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600' }}>Clear all</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation?.navigate('MagicLens')}>
-                  <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>+ New</Text>
+                  <Text style={{ color: colors.textAccent, fontSize: 14, fontWeight: '600' }}>+ New</Text>
                 </TouchableOpacity>
               </View>
             </View>
             {recentScans.map(scan => (
-              <View key={scan.id} style={[styles.scanCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View key={scan.id} style={[styles.scanCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
                 {scan.image_url ? (
                   <Image source={{ uri: scan.image_url }} style={styles.scanThumb} accessibilityLabel={scan.detected_product} />
                 ) : (
                   // Scans saved before thumbnails existed.
-                  <View style={[styles.scanThumb, styles.scanThumbEmpty, { backgroundColor: colors.primarySubtle }]}>
-                    <MaterialCommunityIcons name="image-outline" size={24} color={colors.primary} />
+                  <View style={[styles.scanThumb, styles.scanThumbEmpty, { backgroundColor: colors.accentSubtle }]}>
+                    <MaterialCommunityIcons name="image-outline" size={24} color={colors.accentIcon} />
                   </View>
                 )}
                 <View style={{ flex: 1, paddingRight: 10 }}>
                   <Text style={[styles.scanProduct, { color: colors.textPrimary }]} numberOfLines={1}>{scan.detected_product}</Text>
                   <Text style={[styles.scanCultural, { color: colors.textSecondary }]} numberOfLines={2}>{scan.cultural_equivalent}</Text>
                 </View>
-                <View style={[styles.scoreBadge, { backgroundColor: scoreColor(scan.match_score) + '22' }]}>
-                  <Text style={[styles.scoreText, { color: scoreColor(scan.match_score) }]}>{scan.match_score}</Text>
+                <View style={[styles.scoreBadge, { backgroundColor: matchTone(scan.match_score).bg }]}>
+                  <Text style={[styles.scoreText, { color: matchTone(scan.match_score).text }]}>{scan.match_score}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => deleteScan(scan.id)}
@@ -198,16 +197,16 @@ export default function HomeScreen({ navigation }: any) {
                   accessibilityLabel={`Delete scan: ${scan.detected_product}`}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textTertiary} />
+                  <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
             ))}
           </>
         ) : (
-          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="camera-iris" size={32} color={colors.textTertiary} />
+          <View style={[styles.emptyCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+            <MaterialCommunityIcons name="camera-iris" size={32} color={colors.textSecondary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No scans yet</Text>
-            <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>Tap Magic Lens to scan your first product</Text>
+            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Tap Magic Lens to scan your first product</Text>
           </View>
         )}
 
@@ -217,7 +216,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recipe Lists</Text>
               <TouchableOpacity onPress={() => navigation?.navigate('List')}>
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>+ New</Text>
+                <Text style={{ color: colors.textAccent, fontSize: 14, fontWeight: '600' }}>+ New</Text>
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
@@ -225,9 +224,9 @@ export default function HomeScreen({ navigation }: any) {
                 <TouchableOpacity
                   key={list.id}
                   onPress={() => navigation?.navigate('List', { openListId: list.id, title: list.source_dish || list.title, requestedAt: Date.now() })}
-                  style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[styles.listCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
                 >
-                  <MaterialCommunityIcons name="clipboard-list" size={24} color={colors.primary} />
+                  <MaterialCommunityIcons name="clipboard-list" size={24} color={colors.accentIcon} />
                   <Text style={[styles.listTitle, { color: colors.textPrimary }]} numberOfLines={2}>{list.source_dish || list.title}</Text>
                 </TouchableOpacity>
               ))}
@@ -237,10 +236,10 @@ export default function HomeScreen({ navigation }: any) {
 
         {/* Cultural identity card */}
         {profile?.home_country && (
-          <View style={[styles.identityCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.identityCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <Text style={[styles.identityFlag]}>{flag}</Text>
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={[styles.identityLabel, { color: colors.textTertiary }]}>YOUR CUISINE PROFILE</Text>
+              <Text style={[styles.identityLabel, { color: colors.textSecondary }]}>YOUR CUISINE PROFILE</Text>
               <Text style={[styles.identityValue, { color: colors.textPrimary }]} numberOfLines={1}>
                 {countryName(profile.home_country)}
                 {profile.home_region ? ` · ${profile.home_region}` : ''}
@@ -252,7 +251,7 @@ export default function HomeScreen({ navigation }: any) {
               )}
             </View>
             <TouchableOpacity onPress={() => navigation?.navigate('Profile')}>
-              <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textTertiary} />
+              <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}

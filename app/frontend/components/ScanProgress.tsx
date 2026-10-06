@@ -69,17 +69,17 @@ export default function ScanProgress({
   return (
     <View style={styles.wrap} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}>
       <Text style={[styles.stage, { color: colors.textPrimary }]}>{stage}</Text>
-      <View style={[styles.track, { backgroundColor: colors.border }]}>
+      <View style={[styles.track, { backgroundColor: colors.borderDefault }]}>
         <View
           style={[
             styles.fill,
-            { width: `${Math.round(progress * 100)}%`, backgroundColor: colors.primary },
+            { width: `${Math.round(progress * 100)}%`, backgroundColor: colors.actionPrimary },
             // CSS transition smooths the 250ms steps on web.
             { transitionProperty: 'width', transitionDuration: done ? '250ms' : '300ms' } as any,
           ]}
         />
       </View>
-      <Text style={[styles.hint, { color: slow ? colors.warning : colors.textTertiary }]}>{hint}</Text>
+      <Text style={[styles.hint, { color: slow ? colors.highlightText : colors.textSecondary }]}>{hint}</Text>
     </View>
   );
 }

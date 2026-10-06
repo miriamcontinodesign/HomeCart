@@ -50,12 +50,12 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.brandWrap}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-              <MaterialCommunityIcons name="map-marker-radius" size={36} color={colors.onPrimary} />
+            <View style={[styles.logoCircle, { backgroundColor: colors.actionPrimary }]}>
+              <MaterialCommunityIcons name="map-marker-radius" size={36} color={colors.onActionPrimary} />
             </View>
             <Text style={[styles.title, { color: colors.textPrimary }]}>HomeCart</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -68,9 +68,9 @@ export default function AuthScreen() {
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                  style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                   placeholder="Jane Doe"
-                  placeholderTextColor={colors.textTertiary}
+                  placeholderTextColor={colors.textPlaceholder}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -81,9 +81,9 @@ export default function AuthScreen() {
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                 placeholder="name@example.com"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textPlaceholder}
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -94,9 +94,9 @@ export default function AuthScreen() {
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                 placeholder="••••••••"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textPlaceholder}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -104,27 +104,27 @@ export default function AuthScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }]}
+              style={[styles.button, { backgroundColor: colors.actionPrimary }]}
               onPress={handleEmailAuth}
               disabled={loading}
               activeOpacity={0.85}
             >
-              {loading ? <ActivityIndicator color={colors.onPrimary} /> : (
-                <Text style={[styles.buttonText, { color: colors.onPrimary }]}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
+              {loading ? <ActivityIndicator color={colors.onActionPrimary} /> : (
+                <Text style={[styles.buttonText, { color: colors.onActionPrimary }]}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.toggleButton} onPress={() => setIsSignUp(!isSignUp)}>
-              <Text style={[styles.toggleText, { color: colors.primary }]}>
+              <Text style={[styles.toggleText, { color: colors.textAccent }]}>
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.footerText, { color: colors.textTertiary }]}>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
             By continuing, you agree to the{'\n'}
-            <Text style={[styles.link, { color: colors.primary }]}>Terms of Service</Text> and{' '}
-            <Text style={[styles.link, { color: colors.primary }]}>Privacy Policy</Text>.
+            <Text style={[styles.link, { color: colors.textAccent }]}>Terms of Service</Text> and{' '}
+            <Text style={[styles.link, { color: colors.textAccent }]}>Privacy Policy</Text>.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

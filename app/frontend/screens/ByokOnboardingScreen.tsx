@@ -19,10 +19,10 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.iconWrap, { backgroundColor: colors.primarySubtle }]}>
-          <MaterialCommunityIcons name="key-variant" size={48} color={colors.primary} />
+        <View style={[styles.iconWrap, { backgroundColor: colors.accentSubtle }]}>
+          <MaterialCommunityIcons name="key-variant" size={48} color={colors.accentIcon} />
         </View>
 
         <Text style={[styles.title, { color: colors.textPrimary }]}>Bring your own key</Text>
@@ -31,38 +31,38 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
           run on your account — your costs, your model choice, no shared quota.
         </Text>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>What you'll need</Text>
           <Row icon="check-circle" text="An API key from OpenRouter, OpenAI, or Anthropic" colors={colors} />
           <Row icon="check-circle" text="~30 seconds to paste it into Settings" colors={colors} />
           <Row icon="check-circle" text="A few cents of credits to play with" colors={colors} />
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Quickest path</Text>
           <Text style={[styles.cardBody, { color: colors.textSecondary }]}>
             <Text style={{ fontWeight: '700' }}>OpenRouter</Text> is the easiest — one key works with
             Claude, GPT, Gemini, DeepSeek and 300+ others. $5 of credits will last you weeks.
           </Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://openrouter.ai/keys')}>
-            <Text style={[styles.link, { color: colors.primary }]}>Get an OpenRouter key →</Text>
+            <Text style={[styles.link, { color: colors.textAccent }]}>Get an OpenRouter key →</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.privacy, { color: colors.textTertiary }]}>
+        <Text style={[styles.privacy, { color: colors.textSecondary }]}>
           Your key is saved only in this browser and is never stored on HomeCart's server. Don't save it on a shared computer.
           They are sent only as headers on the specific API call that needs them. The backend never
           logs or persists them.
         </Text>
       </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.bg }]}>
+      <View style={[styles.footer, { borderTopColor: colors.borderDefault, backgroundColor: colors.bgApp }]}>
         <TouchableOpacity
-          style={[styles.cta, { backgroundColor: colors.primary }]}
+          style={[styles.cta, { backgroundColor: colors.actionPrimary }]}
           onPress={() => setSettingsOpen(true)}
         >
-          <MaterialCommunityIcons name="cog" size={20} color={colors.onPrimary} />
-          <Text style={[styles.ctaText, { color: colors.onPrimary }]}>Configure keys</Text>
+          <MaterialCommunityIcons name="cog" size={20} color={colors.onActionPrimary} />
+          <Text style={[styles.ctaText, { color: colors.onActionPrimary }]}>Configure keys</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,7 +80,7 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
 function Row({ icon, text, colors }: { icon: any; text: string; colors: any }) {
   return (
     <View style={styles.row}>
-      <MaterialCommunityIcons name={icon} size={18} color={colors.primary} />
+      <MaterialCommunityIcons name={icon} size={18} color={colors.accentIcon} />
       <Text style={[styles.rowText, { color: colors.textSecondary }]}>{text}</Text>
     </View>
   );

@@ -85,6 +85,8 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 
 **Reasoning model parameters.** All GPT-5.x and o-series models require `max_completion_tokens` (not `max_tokens`) and reject `temperature`. The regex in `providers.py:_OPENAI_REASONING_RE` catches them — update the regex, not the call sites, when new families ship.
 
+**Colours come only from design tokens.** `app/frontend/theme/colors.ts` holds the palette scales (orange, saffron, lime, neutral) and the semantic `tokens` (`bgApp`, `bgSurface`, `actionPrimary`, `accentIcon`, `highlight*`, `match*`…); components read them via `useTheme().colors` and use `matchTone(score)` / `tones` for score chips, fills and badges. Never put hex values in components. WCAG rules baked into the roles: white text only on `actionPrimary` (orange-600); 500-stop fills take `neutral-900` text; coloured text on light backgrounds uses the 900 stop (`textAccent`, `highlightText`, `matchText`); `accentIcon` is for icons only and fails 3:1 on `bgApp`, so keep meaningful icons on surfaces. Single light theme — there is no dark mode.
+
 **`Alert.alert` is a no-op on web.** Import `Alert` from `lib/alert.ts` (window.alert / window.confirm shim), never from `react-native`, or error and confirmation dialogs silently disappear.
 
 **Two Google Maps keys.** The backend's `GOOGLE_MAPS_API_KEY` (Places API (New), server-side, no application restriction) and the frontend's `EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` (Maps JavaScript API, HTTP-referrer restricted). Never put the backend key in the frontend `.env` — it would ship to every visitor unrestricted.

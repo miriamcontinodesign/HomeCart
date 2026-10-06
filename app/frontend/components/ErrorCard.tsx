@@ -20,21 +20,21 @@ export default function ErrorCard({
 }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.iconWrap, { backgroundColor: colors.primarySubtle }]}>
-        <MaterialCommunityIcons name={ICONS[error.kind]} size={26} color={colors.primary} />
+    <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+      <View style={[styles.iconWrap, { backgroundColor: colors.accentSubtle }]}>
+        <MaterialCommunityIcons name={ICONS[error.kind]} size={26} color={colors.accentIcon} />
       </View>
       <Text style={[styles.title, { color: colors.textPrimary }]}>{error.title}</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>{error.message}</Text>
       <View style={styles.actions}>
         {error.retryable && onRetry && (
-          <TouchableOpacity style={[styles.primary, { backgroundColor: colors.primary }]} onPress={onRetry}>
-            <MaterialCommunityIcons name="refresh" size={16} color={colors.onPrimary} />
-            <Text style={[styles.primaryText, { color: colors.onPrimary }]}>Try again</Text>
+          <TouchableOpacity style={[styles.primary, { backgroundColor: colors.actionPrimary }]} onPress={onRetry}>
+            <MaterialCommunityIcons name="refresh" size={16} color={colors.onActionPrimary} />
+            <Text style={[styles.primaryText, { color: colors.onActionPrimary }]}>Try again</Text>
           </TouchableOpacity>
         )}
         {onDismiss && (
-          <TouchableOpacity style={[styles.secondary, { borderColor: colors.border }]} onPress={onDismiss}>
+          <TouchableOpacity style={[styles.secondary, { borderColor: colors.borderDefault }]} onPress={onDismiss}>
             <Text style={[styles.secondaryText, { color: colors.textPrimary }]}>Dismiss</Text>
           </TouchableOpacity>
         )}

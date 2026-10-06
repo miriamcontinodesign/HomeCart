@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
+import { matchTone, tones, tokens } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 
@@ -91,8 +92,8 @@ export default function MapScreen(props: MapScreenProps) {
   const { colors } = useTheme();
   if (!MAPS_BROWSER_KEY) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg, padding: 32 }]}>
-        <MaterialCommunityIcons name="map-marker-off-outline" size={40} color={colors.textTertiary} />
+      <View style={[styles.center, { backgroundColor: colors.bgApp, padding: 32 }]}>
+        <MaterialCommunityIcons name="map-marker-off-outline" size={40} color={colors.textSecondary} />
         <Text style={[styles.hintTitle, { color: colors.textPrimary }]}>Map not configured</Text>
         <Text style={[styles.hintBody, { color: colors.textSecondary }]}>
           Set EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY in the frontend .env and restart.
@@ -108,7 +109,7 @@ export default function MapScreen(props: MapScreenProps) {
 }
 
 function MapScreenInner({ route, navigation }: MapScreenProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const params = route?.params;
@@ -280,19 +281,16 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
 
   // Pin colour by meaning rather than per-cuisine: specialty grocer, recommended for what
   // the user is looking for, or any other store.
-  const cuisineColor = (s: Store) => {
-    if (s.is_specialty) return colors.cultural;
-    if (s.is_preferred) return colors.primary;
-    return colors.textTertiary;
+  const pinTone = (s: Store) => {
+    if (s.is_specialty) return { fill: tones.highlight.fill, text: tones.highlight.onFill };
+    if (s.is_preferred) return { fill: colors.actionPrimary, text: colors.onActionPrimary };
+    return { fill: tones.neutral.fill, text: tones.neutral.onFill };
   };
-
-  const scoreColor = (s: number) => (s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow);
-  const scoreBg = (s: number) => scoreColor(s) + '26';  // ~15% alpha
 
   if (!mapRegion) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator color={colors.primary} size="large" />
+      <View style={[styles.center, { backgroundColor: colors.bgApp }]}>
+        <ActivityIndicator color={colors.accentIcon} size="large" />
       </View>
     );
   }
@@ -301,19 +299,19 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
   const totalNeeded = productContext?.needed_items?.length || 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <View style={[styles.container, { backgroundColor: colors.bgApp }]}>
       {/* Context banner (when navigated from scan/recipe). */}
       {productName && (
         <View style={[styles.bannerSafe, { paddingTop: insets.top + 8 }]}>
-          <View style={[styles.contextBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.contextBanner, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             {!!returnTo && (
               <TouchableOpacity
                 onPress={() => navigation?.navigate(returnTo)}
-                style={[styles.backButton, { backgroundColor: colors.primarySubtle }]}
+                style={[styles.backButton, { backgroundColor: colors.accentSubtle }]}
                 accessibilityRole="button"
                 accessibilityLabel={returnTo === 'MagicLens' ? 'Back to scan result' : 'Back to recipe'}
               >
-                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.primary} />
+                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.accentIcon} />
               </TouchableOpacity>
             )}
             <View style={{ flex: 1 }}>
@@ -335,7 +333,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           defaultCenter={{ lat: mapRegion.latitude, lng: mapRegion.longitude }}
           defaultZoom={USER_ZOOM}
           mapId={MAP_ID}
-          colorScheme={isDark ? ColorScheme.DARK : ColorScheme.LIGHT}
+          colorScheme={ColorScheme.LIGHT}
           onIdle={onMapIdle}
           disableDefaultUI
           gestureHandling="greedy"
@@ -347,7 +345,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
               title="You are here"
               zIndex={0}
             >
-              <View style={[styles.userDot, { backgroundColor: colors.scoreHigh }]} />
+              <View style={[styles.userDot, { backgroundColor: colors.mapUserDot, borderColor: colors.mapUserDotRing }]} />
             </AdvancedMarker>
           )}
           {stores.map(store => (
@@ -366,13 +364,13 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                 style={[
                   styles.markerPin,
                   {
-                    backgroundColor: cuisineColor(store),
-                    borderColor: colors.bg,
+                    backgroundColor: pinTone(store).fill,
+                    borderColor: colors.bgApp,
                   },
                   store.is_specialty && styles.markerSpecialty,
                 ]}
               >
-                <Text style={[styles.markerText, { color: colors.onPrimary }]}>
+                <Text style={[styles.markerText, { color: pinTone(store).text }]}>
                   {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
                 </Text>
               </View>
@@ -389,12 +387,12 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             styles.searchHere,
             {
               top: productName ? insets.top + 92 : insets.top + 12,
-              backgroundColor: colors.primary,
+              backgroundColor: colors.actionPrimary,
             },
           ]}
         >
-          <MaterialCommunityIcons name="magnify" size={16} color={colors.onPrimary} />
-          <Text style={[styles.searchHereText, { color: colors.onPrimary }]}>Search this area</Text>
+          <MaterialCommunityIcons name="magnify" size={16} color={colors.onActionPrimary} />
+          <Text style={[styles.searchHereText, { color: colors.onActionPrimary }]}>Search this area</Text>
         </TouchableOpacity>
       )}
 
@@ -402,15 +400,15 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       {!selectedStore && (
       <TouchableOpacity
         onPress={onRecenter}
-        style={[styles.fab, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[styles.fab, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
       >
-        <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.primary} />
+        <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.accentIcon} />
       </TouchableOpacity>
       )}
 
       {/* Store detail bottom sheet (from marker tap) */}
       {selectedStore && (
-        <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <View style={styles.sheetHeader}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>
@@ -427,28 +425,28 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
 
           <View style={styles.scoreRow}>
             {isRecipeFlow ? (
-              <View style={[styles.scorePill, { backgroundColor: scoreBg(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100) }]}>
-                <Text style={{ color: scoreColor(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100), fontWeight: '700', fontSize: 13 }}>
+              <View style={[styles.scorePill, { backgroundColor: matchTone(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100).bg }]}>
+                <Text style={{ color: matchTone(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100).text, fontWeight: '700', fontSize: 13 }}>
                   {selectedStore.coverage_matched}/{selectedStore.coverage_total} items
                 </Text>
               </View>
             ) : (
-              <View style={[styles.scorePill, { backgroundColor: scoreBg(selectedStore.final_score) }]}>
-                <Text style={{ color: scoreColor(selectedStore.final_score), fontWeight: '700', fontSize: 13 }}>
+              <View style={[styles.scorePill, { backgroundColor: matchTone(selectedStore.final_score).bg }]}>
+                <Text style={{ color: matchTone(selectedStore.final_score).text, fontWeight: '700', fontSize: 13 }}>
                   Match {Math.round(selectedStore.final_score)}
                 </Text>
               </View>
             )}
             {selectedStore.is_specialty && (
-              <View style={[styles.scorePill, { backgroundColor: colors.culturalSubtle }]}>
-                <Text style={{ color: colors.cultural, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
+              <View style={[styles.scorePill, { backgroundColor: colors.highlightFill }]}>
+                <Text style={{ color: colors.onHighlightFill, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
                   SPECIALTY
                 </Text>
               </View>
             )}
             {selectedStore.is_preferred && !selectedStore.is_specialty && (
-              <View style={[styles.scorePill, { backgroundColor: colors.primarySubtle }]}>
-                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
+              <View style={[styles.scorePill, { backgroundColor: colors.accentSubtle }]}>
+                <Text style={{ color: colors.textAccent, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
                   RECOMMENDED
                 </Text>
               </View>
@@ -472,25 +470,25 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                 `https://www.google.com/maps/dir/?api=1&destination=${selectedStore.lat},${selectedStore.lon}`,
               )
             }
-            style={[styles.directionsBtn, { backgroundColor: colors.primary }]}
+            style={[styles.directionsBtn, { backgroundColor: colors.actionPrimary }]}
           >
-            <Text style={{ color: colors.onPrimary, fontWeight: '600', fontSize: 15 }}>Get Directions</Text>
+            <Text style={{ color: colors.onActionPrimary, fontWeight: '600', fontSize: 15 }}>Get Directions</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Loading pill */}
       {loading && (
-        <View style={[styles.loadingPill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <ActivityIndicator color={colors.primary} size="small" />
+        <View style={[styles.loadingPill, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+          <ActivityIndicator color={colors.accentIcon} size="small" />
           <Text style={{ color: colors.textPrimary, marginLeft: 8, fontSize: 13 }}>Finding stores…</Text>
         </View>
       )}
 
       {/* Error toast (only when not loading and no sheet open) */}
       {!loading && !selectedStore && !showStoreList && errorMsg && (
-        <View style={[styles.errorCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={{ color: colors.warning, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>⚠️ Heads up</Text>
+        <View style={[styles.errorCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+          <Text style={{ color: colors.highlightText, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>⚠️ Heads up</Text>
           <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>{errorMsg}</Text>
         </View>
       )}
@@ -499,7 +497,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       {!loading && !selectedStore && !showStoreList && !errorMsg && stores.length > 0 && (
         <TouchableOpacity
           onPress={() => setShowStoreList(true)}
-          style={[styles.countPill, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[styles.countPill, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
         >
           <MaterialCommunityIcons name="format-list-bulleted" size={14} color={colors.textPrimary} />
           <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
@@ -511,7 +509,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       {/* Full store list sheet */}
       <Modal visible={showStoreList} animationType="slide" transparent onRequestClose={() => setShowStoreList(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.listSheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.listSheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <View style={styles.listSheetHeader}>
               <View>
                 <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>
@@ -537,7 +535,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                 return (
                   <View
                     key={store.place_id}
-                    style={[styles.listRow, { borderColor: colors.border }]}
+                    style={[styles.listRow, { borderColor: colors.borderDefault }]}
                   >
                     <View style={styles.listRowMain}>
                       {/* Tap main row → close modal + pan map to this store + open detail sheet */}
@@ -545,8 +543,8 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                         onPress={() => focusOnStore(store)}
                         style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                       >
-                        <View style={[styles.listMarker, { backgroundColor: cuisineColor(store) }]}>
-                          <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: '800' }}>
+                        <View style={[styles.listMarker, { backgroundColor: pinTone(store).fill }]}>
+                          <Text style={{ color: pinTone(store).text, fontSize: 11, fontWeight: '800' }}>
                             {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
                           </Text>
                         </View>
@@ -556,7 +554,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                               {store.name}
                             </Text>
                             {isRecipeFlow && (
-                              <Text style={{ color: scoreColor(coveragePct), fontSize: 13, fontWeight: '700' }}>
+                              <Text style={{ color: matchTone(coveragePct).text, fontSize: 13, fontWeight: '700' }}>
                                 {store.coverage_matched}/{store.coverage_total}
                               </Text>
                             )}
@@ -578,7 +576,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                           <MaterialCommunityIcons
                             name={expanded ? 'chevron-up' : 'chevron-down'}
                             size={22}
-                            color={colors.textTertiary}
+                            color={colors.textSecondary}
                           />
                         </TouchableOpacity>
                       )}
@@ -592,7 +590,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                           </Text>
                         ))}
                         {(store.coverage_total || 0) > (store.coverage_matched || 0) && (
-                          <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>
+                          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>
                             Missing {((store.coverage_total || 0) - (store.coverage_matched || 0))} item(s) — try a different store for those.
                           </Text>
                         )}
@@ -606,9 +604,9 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                             `https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lon}`,
                           )
                         }
-                        style={[styles.dirChip, { backgroundColor: colors.primarySubtle }]}
+                        style={[styles.dirChip, { backgroundColor: colors.accentSubtle }]}
                       >
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>Directions →</Text>
+                        <Text style={{ color: colors.textAccent, fontSize: 12, fontWeight: '600' }}>Directions →</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -650,7 +648,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     zIndex: 8,
-    shadowColor: '#000',
+    shadowColor: tokens.shadow,
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -667,7 +665,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: tokens.shadow,
     shadowOpacity: 0.25,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -691,7 +689,6 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 3,
-    borderColor: '#FFF',
   },
   sheet: {
     position: 'absolute',
@@ -742,7 +739,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 24,
     borderWidth: 1,
-    shadowColor: '#000',
+    shadowColor: tokens.shadow,
     shadowOpacity: 0.15,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -750,7 +747,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: tokens.scrim,
     justifyContent: 'flex-end',
   },
   listSheet: {

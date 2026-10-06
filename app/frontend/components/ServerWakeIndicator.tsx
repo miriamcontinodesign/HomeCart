@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
+import { tokens } from '../theme/colors';
 import { API_URL } from '../lib/api';
 
 // The Render free tier sleeps after 15 idle minutes and takes ~30-60s to wake. Ping
@@ -74,11 +75,11 @@ export default function ServerWakeIndicator() {
       pointerEvents="none"
       accessibilityRole="progressbar"
       accessibilityLabel={status === 'waking' ? 'Waking up the server' : 'Server ready'}
-      style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[styles.pill, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
     >
       {status === 'waking'
-        ? <ActivityIndicator size="small" color={colors.primary} />
-        : <MaterialCommunityIcons name="check-circle" size={16} color={colors.scoreHigh} />}
+        ? <ActivityIndicator size="small" color={colors.accentIcon} />
+        : <MaterialCommunityIcons name="check-circle" size={16} color={colors.matchFill} />}
       <Text style={[styles.text, { color: colors.textSecondary }]}>
         {status === 'waking' ? 'Waking up server…' : 'Ready'}
       </Text>
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 16, bottom: 104, zIndex: 50,
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    shadowColor: tokens.shadow, shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
   text: { fontSize: 12, fontWeight: '600' },
 });

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { matchTone, tones } from '../theme/colors';
 import { apiFetchJson } from '../lib/api';
 import { Alert } from '../lib/alert';
 import ErrorCard from '../components/ErrorCard';
@@ -226,7 +227,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
   }
 
   return (
-    <SafeAreaView style={[styles.pickContainer, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.pickContainer, { backgroundColor: colors.bgApp }]} edges={['top']}>
       {/* capture="environment" opens the rear camera on phones; desktops get a file picker. */}
       <input
         ref={fileInputRef}
@@ -256,35 +257,35 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
         </View>
       ) : (
         <ScrollView contentContainerStyle={[styles.pickBody, { flexGrow: 1 }]} keyboardShouldPersistTaps="handled">
-          <View style={[styles.pickIcon, { backgroundColor: colors.primarySubtle }]}>
-            <MaterialCommunityIcons name="camera-outline" size={44} color={colors.primary} />
+          <View style={[styles.pickIcon, { backgroundColor: colors.accentSubtle }]}>
+            <MaterialCommunityIcons name="camera-outline" size={44} color={colors.accentIcon} />
           </View>
           <Text style={[styles.pickTitle, { color: colors.textPrimary }]}>Magic Lens</Text>
           <Text style={[styles.pickText, { color: colors.textSecondary }]}>
             Take or upload a photo of any grocery product and I'll translate it to your home cuisine.
           </Text>
           <TouchableOpacity
-            style={[styles.pickButton, { backgroundColor: colors.primary }]}
+            style={[styles.pickButton, { backgroundColor: colors.actionPrimary }]}
             onPress={() => fileInputRef.current?.click()}
           >
-            <MaterialCommunityIcons name="image-plus" size={18} color={colors.onPrimary} />
-            <Text style={[styles.pickButtonText, { color: colors.onPrimary }]}>Take or upload a photo</Text>
+            <MaterialCommunityIcons name="image-plus" size={18} color={colors.onActionPrimary} />
+            <Text style={[styles.pickButtonText, { color: colors.onActionPrimary }]}>Take or upload a photo</Text>
           </TouchableOpacity>
-          <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
+          <Text style={[styles.pickHint, { color: colors.textSecondary }]}>
             Tip: get the label in frame and in focus.
           </Text>
 
           {/* Search by name */}
           <View style={styles.orRow}>
-            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
-            <Text style={[styles.orText, { color: colors.textTertiary }]}>or search by name</Text>
-            <View style={[styles.orLine, { backgroundColor: colors.border }]} />
+            <View style={[styles.orLine, { backgroundColor: colors.borderDefault }]} />
+            <Text style={[styles.orText, { color: colors.textSecondary }]}>or search by name</Text>
+            <View style={[styles.orLine, { backgroundColor: colors.borderDefault }]} />
           </View>
           <View style={styles.searchRow}>
             <TextInput
-              style={[styles.searchInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.searchInput, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
               placeholder="e.g. mascarpone, gochujang, queso fresco"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textPlaceholder}
               value={query}
               onChangeText={setQuery}
               onSubmitEditing={() => runSearch()}
@@ -292,15 +293,15 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
               accessibilityLabel="Search a product from any country"
             />
             <TouchableOpacity
-              style={[styles.searchButton, { backgroundColor: colors.primary, opacity: query.trim() ? 1 : 0.5 }]}
+              style={[styles.searchButton, { backgroundColor: colors.actionPrimary, opacity: query.trim() ? 1 : 0.5 }]}
               onPress={() => runSearch()}
               disabled={!query.trim()}
               accessibilityLabel="Find the American version"
             >
-              <MaterialCommunityIcons name="magnify" size={22} color={colors.onPrimary} />
+              <MaterialCommunityIcons name="magnify" size={22} color={colors.onActionPrimary} />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
+          <Text style={[styles.pickHint, { color: colors.textSecondary }]}>
             A product from any country — I'll find its American version.
           </Text>
         </ScrollView>
@@ -314,11 +315,10 @@ function ProductSearchResultView({
 }: {
   result: ProductSearchResult; onReset: () => void; onFindStores: () => void; colors: any;
 }) {
-  const scoreColorFor = (score: number) => score >= 75 ? colors.scoreHigh : score >= 50 ? colors.scoreMid : colors.scoreLow;
   return (
-    <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bgApp }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
-        <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.resultCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.product_name || result.query}</Text>
           {!!result.origin_country && (
             <Text style={[styles.productBrand, { color: colors.textSecondary }]}>From {result.origin_country}</Text>
@@ -328,21 +328,21 @@ function ProductSearchResultView({
           )}
 
           {result.us_equivalents.length > 0 ? (
-            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-              <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>AMERICAN VERSIONS</Text>
+            <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>AMERICAN VERSIONS</Text>
               {result.us_equivalents.map((e, i) => (
-                <View key={`${e.name}-${i}`} style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                <View key={`${e.name}-${i}`} style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.borderDefault }]}>
                   <View style={styles.matchHeader}>
                     <Text style={[styles.matchName, { color: colors.textPrimary }]}>{e.name}</Text>
-                    <View style={[styles.matchPill, { backgroundColor: scoreColorFor(e.match_score) + '22' }]}>
-                      <Text style={[styles.matchPillText, { color: scoreColorFor(e.match_score) }]}>{e.match_score}% match</Text>
+                    <View style={[styles.matchPill, { backgroundColor: matchTone(e.match_score).bg }]}>
+                      <Text style={[styles.matchPillText, { color: matchTone(e.match_score).text }]}>{e.match_score}% match</Text>
                     </View>
                   </View>
-                  {!!e.brand && <Text style={[styles.equivMeta, { color: colors.primary }]}>{e.brand}</Text>}
+                  {!!e.brand && <Text style={[styles.equivMeta, { color: colors.textAccent }]}>{e.brand}</Text>}
                   {!!e.aisle && (
                     <View style={styles.aisleRow}>
-                      <MaterialCommunityIcons name="map-marker" size={13} color={colors.textTertiary} />
-                      <Text style={[styles.equivMeta, { color: colors.textTertiary }]}>{e.aisle}</Text>
+                      <MaterialCommunityIcons name="map-marker" size={13} color={colors.textSecondary} />
+                      <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>{e.aisle}</Text>
                     </View>
                   )}
                   {!!e.tip && <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 4 }]}>{e.tip}</Text>}
@@ -350,7 +350,7 @@ function ProductSearchResultView({
               ))}
             </View>
           ) : (
-            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+            <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
               <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
                 I couldn't find an American version for this one.
               </Text>
@@ -358,21 +358,21 @@ function ProductSearchResultView({
           )}
 
           {!!result.ai_tip && (
-            <View style={[styles.section, { backgroundColor: colors.primarySubtle, borderColor: colors.primary + '30' }]}>
-              <Text style={[styles.sectionLabel, { color: colors.primary }]}>💡 AI TIP</Text>
-              <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.ai_tip}</Text>
+            <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
+              <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
             </View>
           )}
         </View>
 
         {result.us_equivalents.length > 0 && (
-          <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.primary }]} onPress={onFindStores}>
-            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
-            <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find in a Store</Text>
+          <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]} onPress={onFindStores}>
+            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onActionPrimary} />
+            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a Store</Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={[styles.scanAgainButton, { borderColor: colors.border }]} onPress={onReset}>
+        <TouchableOpacity style={[styles.scanAgainButton, { borderColor: colors.borderDefault }]} onPress={onReset}>
           <Text style={[styles.scanAgainText, { color: colors.textPrimary }]}>Search or scan another</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -385,16 +385,15 @@ function ScanResultView({
 }: {
   result: ScanResult; image: string | null; homeCountry: string; onReset: () => void; onFindStores?: () => void; colors: any;
 }) {
-  const scoreColorFor = (score: number) => score >= 75 ? colors.scoreHigh : score >= 50 ? colors.scoreMid : colors.scoreLow;
-  const scoreColor = scoreColorFor(result.match_score);
+  const overall = matchTone(result.match_score);
   const matches = result.home_matches || [];
 
   return (
-    <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bg }]} edges={['top']}>
+    <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bgApp }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
         {image && <Image source={{ uri: image }} style={styles.resultImage} />}
 
-        <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.resultCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.productName, { color: colors.textPrimary }]}>{result.detected_product}</Text>
           {!!result.detected_brand && (
             <Text style={[styles.productBrand, { color: colors.textSecondary }]}>
@@ -406,19 +405,19 @@ function ScanResultView({
           )}
 
           {matches.length > 0 ? (
-            <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-              <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>
+            <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
                 SIMILAR FROM {(homeCountry || 'HOME').toUpperCase()}
               </Text>
               {matches.map((m, i) => (
                 <View
                   key={`${m.name}-${i}`}
-                  style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+                  style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.borderDefault }]}
                 >
                   <View style={styles.matchHeader}>
                     <Text style={[styles.matchName, { color: colors.textPrimary }]}>{m.name}</Text>
-                    <View style={[styles.matchPill, { backgroundColor: scoreColorFor(m.match_score) + '22' }]}>
-                      <Text style={[styles.matchPillText, { color: scoreColorFor(m.match_score) }]}>{m.match_score}% match</Text>
+                    <View style={[styles.matchPill, { backgroundColor: matchTone(m.match_score).bg }]}>
+                      <Text style={[styles.matchPillText, { color: matchTone(m.match_score).text }]}>{m.match_score}% match</Text>
                     </View>
                   </View>
                   {!!m.how_to_use && (
@@ -430,38 +429,38 @@ function ScanResultView({
           ) : (
             // Older scans (and replies from models that skip home_matches) only have the summary.
             <>
-              <View style={[styles.scoreCircle, { backgroundColor: scoreColor }]}>
-                <Text style={[styles.scoreNumber, { color: colors.onPrimary }]}>{result.match_score}</Text>
-                <Text style={[styles.scoreLabel, { color: colors.onPrimary }]}>MATCH</Text>
+              <View style={[styles.scoreCircle, { backgroundColor: overall.fill }]}>
+                <Text style={[styles.scoreNumber, { color: overall.onFill }]}>{result.match_score}</Text>
+                <Text style={[styles.scoreLabel, { color: overall.onFill }]}>MATCH</Text>
               </View>
-              <View style={[styles.section, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-                <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>FOR YOUR CUISINE</Text>
+              <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>FOR YOUR CUISINE</Text>
                 <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.cultural_equivalent}</Text>
               </View>
             </>
           )}
 
-          <View style={[styles.section, { backgroundColor: colors.primarySubtle, borderColor: colors.primary + '30' }]}>
-            <Text style={[styles.sectionLabel, { color: colors.primary }]}>💡 AI TIP</Text>
-            <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.ai_tip}</Text>
+          <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
+            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
+            <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
           </View>
 
           {result.can_make_at_home && !!result.home_recipe_summary && (
-            <View style={[styles.section, { backgroundColor: colors.cultural + '15', borderColor: colors.cultural + '30' }]}>
-              <Text style={[styles.sectionLabel, { color: colors.cultural }]}>🏠 MAKE IT AT HOME</Text>
-              <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.home_recipe_summary}</Text>
+            <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>🏠 MAKE IT AT HOME</Text>
+              <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.home_recipe_summary}</Text>
             </View>
           )}
         </View>
 
         {onFindStores && (
-          <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.primary }]} onPress={onFindStores}>
-            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onPrimary} />
-            <Text style={[styles.findStoresText, { color: colors.onPrimary }]}>Find in a Store</Text>
+          <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]} onPress={onFindStores}>
+            <MaterialCommunityIcons name="store-marker" size={18} color={colors.onActionPrimary} />
+            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a Store</Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={[styles.scanAgainButton, { borderColor: colors.border }]} onPress={onReset}>
+        <TouchableOpacity style={[styles.scanAgainButton, { borderColor: colors.borderDefault }]} onPress={onReset}>
           <Text style={[styles.scanAgainText, { color: colors.textPrimary }]}>Scan another</Text>
         </TouchableOpacity>
       </ScrollView>

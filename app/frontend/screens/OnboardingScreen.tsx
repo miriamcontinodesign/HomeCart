@@ -78,12 +78,12 @@ export default function OnboardingScreen() {
               key={item}
               style={[
                 styles.listItem,
-                { backgroundColor: colors.surface, borderColor: sel ? colors.primary : colors.border },
-                sel && { backgroundColor: colors.primarySubtle },
+                { backgroundColor: colors.bgSurface, borderColor: sel ? colors.actionPrimary : colors.borderDefault },
+                sel && { backgroundColor: colors.accentSubtle },
               ]}
               onPress={() => setLanguage(item)}
             >
-              <Text style={{ color: sel ? colors.primary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 15 }}>{item}</Text>
+              <Text style={{ color: sel ? colors.textAccent : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 15 }}>{item}</Text>
             </TouchableOpacity>
           );
         })}
@@ -103,11 +103,11 @@ export default function OnboardingScreen() {
               key={item}
               style={[
                 styles.chip,
-                { backgroundColor: sel ? colors.primary : colors.surface, borderColor: sel ? colors.primary : colors.border },
+                { backgroundColor: sel ? colors.actionPrimary : colors.bgSurface, borderColor: sel ? colors.actionPrimary : colors.borderDefault },
               ]}
               onPress={() => toggleDietary(item)}
             >
-              <Text style={{ color: sel ? colors.onPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 14 }}>{item}</Text>
+              <Text style={{ color: sel ? colors.onActionPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 14 }}>{item}</Text>
             </TouchableOpacity>
           );
         })}
@@ -118,9 +118,9 @@ export default function OnboardingScreen() {
   const canAdvance = () => step === 1 ? !!selectedCountryId : true;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
-      <View style={[styles.progressBar, { backgroundColor: colors.surface }]}>
-        <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: colors.primary }]} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]}>
+      <View style={[styles.progressBar, { backgroundColor: colors.bgSurface }]}>
+        <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: colors.actionPrimary }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -129,10 +129,10 @@ export default function OnboardingScreen() {
         {step === 3 && renderStep3()}
       </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+      <View style={[styles.footer, { borderTopColor: colors.borderDefault }]}>
         {step > 1 && (
           <TouchableOpacity
-            style={[styles.backButton, { borderColor: colors.border }]}
+            style={[styles.backButton, { borderColor: colors.borderDefault }]}
             onPress={() => setStep(step - 1)}
           >
             <Text style={[styles.backButtonText, { color: colors.textPrimary }]}>Back</Text>
@@ -141,15 +141,15 @@ export default function OnboardingScreen() {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            { backgroundColor: canAdvance() ? colors.primary : colors.surface, opacity: isSubmitting ? 0.6 : 1 },
+            { backgroundColor: canAdvance() ? colors.actionPrimary : colors.bgSurface, opacity: isSubmitting ? 0.6 : 1 },
           ]}
           onPress={() => step < TOTAL_STEPS ? setStep(step + 1) : handleComplete()}
           disabled={!canAdvance() || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color={colors.onPrimary} />
+            <ActivityIndicator color={colors.onActionPrimary} />
           ) : (
-            <Text style={[styles.nextButtonText, { color: canAdvance() ? colors.onPrimary : colors.textTertiary }]}>
+            <Text style={[styles.nextButtonText, { color: canAdvance() ? colors.onActionPrimary : colors.textSecondary }]}>
               {step === TOTAL_STEPS ? 'Get Started' : 'Next'}
             </Text>
           )}

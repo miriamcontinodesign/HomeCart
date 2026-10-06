@@ -4,13 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ServerWakeIndicator from './components/ServerWakeIndicator';
 import { NavigationContainer } from '@react-navigation/native';
-import { DarkTheme as NavDarkTheme } from '@react-navigation/native';
+import { DefaultTheme as NavDefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
-import { darkColors } from './theme/colors';
+import { tokens } from './theme/colors';
 import { loadByokKeys, clearLegacyByokKeys } from './lib/byok';
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -23,17 +23,17 @@ import MagicLensScreen from './screens/MagicLensScreen';
 
 const BYOK_ONLY = process.env.EXPO_PUBLIC_BYOK_ONLY === 'true';
 
-// Navigation theme wired to dark palette
+// Navigation theme wired to the design tokens
 const navTheme = {
-  ...NavDarkTheme,
+  ...NavDefaultTheme,
   colors: {
-    ...NavDarkTheme.colors,
-    background: darkColors.bg,
-    card: darkColors.surface,
-    text: darkColors.textPrimary,
-    border: darkColors.border,
-    primary: darkColors.primary,
-    notification: darkColors.cultural,
+    ...NavDefaultTheme.colors,
+    background: tokens.bgApp,
+    card: tokens.bgSurface,
+    text: tokens.textPrimary,
+    border: tokens.borderDefault,
+    primary: tokens.accentIcon,
+    notification: tokens.highlightFill,
   },
 };
 
@@ -49,12 +49,12 @@ function MainTabNavigator() {
           paddingBottom: 30,
           paddingTop: 10,
           borderTopWidth: 1,
-          borderTopColor: colors.border,
+          borderTopColor: colors.borderDefault,
           elevation: 0,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bgSurface,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: colors.accentIcon,   // active nav: accent/icon (sits on the white tab bar)
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
       }}
     >
@@ -84,15 +84,15 @@ function MainTabNavigator() {
           tabBarIcon: ({ focused }) => (
             <View style={{
               width: 64, height: 64, borderRadius: 32,
-              backgroundColor: colors.primary,
+              backgroundColor: colors.actionPrimary,
               justifyContent: 'center', alignItems: 'center',
               marginBottom: 30,
-              borderWidth: 4, borderColor: colors.surface,
-              shadowColor: colors.primary,
+              borderWidth: 4, borderColor: colors.bgSurface,
+              shadowColor: colors.actionPrimary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.4, shadowRadius: 8, elevation: 5,
             }}>
-              <MaterialCommunityIcons name="scan-helper" size={32} color={colors.onPrimary} />
+              <MaterialCommunityIcons name="scan-helper" size={32} color={colors.onActionPrimary} />
             </View>
           ),
         }}
@@ -144,8 +144,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centered, { backgroundColor: colors.bgApp }]}>
+        <ActivityIndicator size="large" color={colors.accentIcon} />
       </View>
     );
   }
@@ -156,8 +156,8 @@ function AppContent() {
 
   if (profile === undefined) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centered, { backgroundColor: colors.bgApp }]}>
+        <ActivityIndicator size="large" color={colors.accentIcon} />
       </View>
     );
   }
@@ -170,8 +170,8 @@ function AppContent() {
   if (BYOK_ONLY) {
     if (hasLlmKey === null) {
       return (
-        <View style={[styles.centered, { backgroundColor: colors.bg }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={[styles.centered, { backgroundColor: colors.bgApp }]}>
+          <ActivityIndicator size="large" color={colors.accentIcon} />
         </View>
       );
     }
@@ -192,8 +192,8 @@ function AppContent() {
 function AppFrame({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.frameOuter, { backgroundColor: colors.bg }]}>
-      <View style={[styles.frameInner, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+    <View style={[styles.frameOuter, { backgroundColor: colors.bgApp }]}>
+      <View style={[styles.frameInner, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
         {children}
         <ServerWakeIndicator />
       </View>
@@ -206,7 +206,7 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <ThemeProvider>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <AppFrame>
             <AppContent />
           </AppFrame>

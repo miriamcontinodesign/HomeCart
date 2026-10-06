@@ -41,7 +41,7 @@ export default function CountryPicker({
       {/* Dropdown field */}
       <TouchableOpacity
         onPress={() => setOpen(o => !o)}
-        style={[styles.field, { backgroundColor: colors.surface, borderColor: open ? colors.primary : colors.border }]}
+        style={[styles.field, { backgroundColor: colors.bgSurface, borderColor: open ? colors.actionPrimary : colors.borderDefault }]}
         accessibilityRole="button"
         accessibilityLabel={selected ? `Home country: ${selected.name}. Change` : 'Choose your home country'}
       >
@@ -51,27 +51,27 @@ export default function CountryPicker({
             <Text style={[styles.fieldText, { color: colors.textPrimary }]}>{selected.name}</Text>
           </>
         ) : (
-          <Text style={[styles.fieldText, { color: colors.textTertiary }]}>Choose your home country</Text>
+          <Text style={[styles.fieldText, { color: colors.textSecondary }]}>Choose your home country</Text>
         )}
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textTertiary} />
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textSecondary} />
       </TouchableOpacity>
 
       {/* Dropdown panel */}
       {open && (
-        <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.search, { borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="magnify" size={18} color={colors.textTertiary} />
+        <View style={[styles.panel, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+          <View style={[styles.search, { borderColor: colors.borderDefault }]}>
+            <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: colors.textPrimary }]}
               placeholder="Search countries"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textPlaceholder}
               value={query}
               onChangeText={setQuery}
               autoFocus
             />
             {!!query && (
               <TouchableOpacity onPress={() => setQuery('')} accessibilityLabel="Clear search">
-                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textTertiary} />
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -82,18 +82,18 @@ export default function CountryPicker({
             )}
             {groups.map(group => (
               <View key={group.name}>
-                <Text style={[styles.groupLabel, { color: colors.textTertiary }]}>{group.name.toUpperCase()}</Text>
+                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.name.toUpperCase()}</Text>
                 {group.countries.map(c => {
                   const sel = c.id === countryId;
                   return (
                     <TouchableOpacity
                       key={c.id}
                       onPress={() => pick(c.id)}
-                      style={[styles.row, sel && { backgroundColor: colors.primarySubtle }]}
+                      style={[styles.row, sel && { backgroundColor: colors.accentSubtle }]}
                     >
                       <Text style={styles.rowFlag}>{c.flag}</Text>
-                      <Text style={[styles.rowText, { color: sel ? colors.primary : colors.textPrimary }]}>{c.name}</Text>
-                      {sel && <MaterialCommunityIcons name="check" size={18} color={colors.primary} />}
+                      <Text style={[styles.rowText, { color: sel ? colors.textAccent : colors.textPrimary }]}>{c.name}</Text>
+                      {sel && <MaterialCommunityIcons name="check" size={18} color={colors.accentIcon} />}
                     </TouchableOpacity>
                   );
                 })}
@@ -106,7 +106,7 @@ export default function CountryPicker({
       {/* Region chips */}
       {!open && selected && selected.regions.length > 0 && (
         <View style={styles.regionSection}>
-          <Text style={[styles.groupLabel, { color: colors.textTertiary, paddingHorizontal: 0 }]}>REGION (OPTIONAL)</Text>
+          <Text style={[styles.groupLabel, { color: colors.textSecondary, paddingHorizontal: 0 }]}>REGION (OPTIONAL)</Text>
           <View style={styles.regionList}>
             {selected.regions.map(r => {
               const sel = region === r;
@@ -114,12 +114,12 @@ export default function CountryPicker({
                 <TouchableOpacity
                   key={r}
                   style={[styles.regionChip, {
-                    backgroundColor: sel ? colors.primary : colors.surface,
-                    borderColor: sel ? colors.primary : colors.border,
+                    backgroundColor: sel ? colors.actionPrimary : colors.bgSurface,
+                    borderColor: sel ? colors.actionPrimary : colors.borderDefault,
                   }]}
                   onPress={() => onChangeRegion(sel ? '' : r)}
                 >
-                  <Text style={{ color: sel ? colors.onPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{r}</Text>
+                  <Text style={{ color: sel ? colors.onActionPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{r}</Text>
                 </TouchableOpacity>
               );
             })}
