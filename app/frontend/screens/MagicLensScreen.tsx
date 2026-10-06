@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import { Alert } from '../lib/alert';
 import ErrorCard from '../components/ErrorCard';
 import { describeError, FriendlyError } from '../lib/errors';
 import { countryName } from '../lib/countries';
+import ScanProgress, { recordScanDuration } from '../components/ScanProgress';
 
 type HomeMatch = {
   name: string;
@@ -55,6 +56,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
   const { colors } = useTheme();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [scanDone, setScanDone] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<FriendlyError | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
@@ -63,8 +65,10 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
   const scanFile = async (file: File) => {
     try {
       setScanning(true);
+      setScanDone(false);
       setError(null);
       setLastFile(file);
+      const startedAt = Date.now();
       let image;
       try {
         image = await prepareImage(file);
@@ -88,6 +92,10 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
           },
         }),
       });
+      recordScanDuration(Date.now() - startedAt);
+      // Let the bar visibly reach 100% before swapping in the result.
+      setScanDone(true);
+      await new Promise(r => setTimeout(r, 400));
       setResult(data);
     } catch (err) {
       setCapturedImage(null);
@@ -140,11 +148,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
       {scanning ? (
         <View style={styles.pickBody}>
           {capturedImage && <Image source={{ uri: capturedImage }} style={styles.pickPreview} />}
-          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
-          <Text style={[styles.pickTitle, { color: colors.textPrimary }]}>Reading the label…</Text>
-          <Text style={[styles.pickHint, { color: colors.textTertiary }]}>
-            Free AI models can take up to a minute.
-          </Text>
+          <ScanProgress done={scanDone} homeCountry={countryName(profile?.home_country)} />
         </View>
       ) : error ? (
         <View style={styles.pickBody}>
