@@ -244,13 +244,6 @@ function ScanResultView({
             </>
           )}
 
-          {!!result.real_version_name && (
-            <View style={[styles.section, { backgroundColor: colors.scoreHigh + '15', borderColor: colors.scoreHigh + '30' }]}>
-              <Text style={[styles.sectionLabel, { color: colors.scoreHigh }]}>THE REAL THING</Text>
-              <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.real_version_name}</Text>
-            </View>
-          )}
-
           <View style={[styles.section, { backgroundColor: colors.primarySubtle, borderColor: colors.primary + '30' }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>💡 AI TIP</Text>
             <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.ai_tip}</Text>
