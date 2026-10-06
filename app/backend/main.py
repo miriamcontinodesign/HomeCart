@@ -5,6 +5,7 @@ from typing import Callable, Optional, List
 from supabase import create_client, Client
 import os
 import re
+import time
 import json
 import httpx
 from math import radians, sin, cos, sqrt, atan2
@@ -14,7 +15,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Provider router for LLM calls (BYOK-aware). See app/backend/providers.py.
-from providers import llm_vision, llm_text
+from providers import (
+    llm_vision, llm_text,
+    ENV_LLM_BASE_URL, ENV_VISION_MODEL, ENV_VISION_FALLBACKS, ENV_TEXT_MODEL, ENV_TEXT_FALLBACKS,
+)
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title="HomeCart Backend")
 
@@ -254,6 +259,52 @@ async def healthz():
     requests — FastAPI doesn't auto-handle HEAD on @app.get routes.
     """
     return {"ok": True}
+
+
+# Free OpenRouter models get withdrawn without notice (a ":free" slug then 404s — it never
+# silently becomes paid). This endpoint checks every configured model against OpenRouter's
+# public model list (no key, no tokens spent) so an UptimeRobot monitor can email the
+# operator when a chain degrades. Cached so frequent pings don't hammer OpenRouter.
+_MODEL_STATUS_TTL_S = 600
+_model_status_cache: dict = {"at": 0.0, "body": None, "code": 200}
+
+
+@app.api_route("/health/models", methods=["GET", "HEAD"])
+async def health_models():
+    now = time.time()
+    if _model_status_cache["body"] and now - _model_status_cache["at"] < _MODEL_STATUS_TTL_S:
+        return JSONResponse(_model_status_cache["body"], status_code=_model_status_cache["code"])
+
+    if "openrouter.ai" not in ENV_LLM_BASE_URL:
+        return {"ok": True, "note": "model check only supports OpenRouter"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get("https://openrouter.ai/api/v1/models")
+            r.raise_for_status()
+            catalog = {m["id"]: m for m in r.json().get("data", [])}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"could not reach OpenRouter: {e!r}"}, status_code=503)
+
+    def status(model_id: str) -> str:
+        m = catalog.get(model_id)
+        if not m:
+            return "missing"
+        pricing = m.get("pricing") or {}
+        free = all(float(pricing.get(k) or 0) == 0 for k in ("prompt", "completion"))
+        return "free" if free else "paid"
+
+    chains = {
+        "vision": [ENV_VISION_MODEL, *ENV_VISION_FALLBACKS],
+        "text": [ENV_TEXT_MODEL, *ENV_TEXT_FALLBACKS],
+    }
+    report = {kind: [{"model": m, "status": status(m)} for m in models] for kind, models in chains.items()}
+    problems = [f"{kind}: {e['model']} is {e['status']}"
+                for kind, entries in report.items() for e in entries if e["status"] != "free"]
+    body = {"ok": not problems, "problems": problems, "chains": report}
+    # 503 makes a plain HTTP uptime monitor alert; the JSON says which model to replace.
+    code = 200 if not problems else 503
+    _model_status_cache.update(at=now, body=body, code=code)
+    return JSONResponse(body, status_code=code)
 
 
 @app.post("/scan")

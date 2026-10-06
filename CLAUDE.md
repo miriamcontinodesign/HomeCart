@@ -78,6 +78,8 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 
 **No backend-side migration runner.** When you add a new `.sql` file to `app/migrations/`, you must apply it to Supabase manually before deploying backend code that depends on it. The `daily_usage` rate-limit gate WILL crash with `relation "daily_usage" does not exist` if migration 005 isn't applied yet.
 
+**Free models get withdrawn.** A `:free` OpenRouter slug that's pulled starts returning 404 (it never silently bills). `GET/HEAD /health/models` checks every model in the `LLM_*` chains against OpenRouter's public catalogue (cached 10 min) and returns 503 with a `problems` list when one is missing or no longer free; an UptimeRobot monitor on it emails the operator. Fix by editing `LLM_VISION_*` / `LLM_TEXT_*` in Render and the local `.env`.
+
 **`@app.get` does NOT auto-handle HEAD in FastAPI.** UptimeRobot's free tier sends HEAD only. `/healthz` uses `@app.api_route(["GET", "HEAD"])` — preserve this if refactoring.
 
 **Reasoning model parameters.** All GPT-5.x and o-series models require `max_completion_tokens` (not `max_tokens`) and reject `temperature`. The regex in `providers.py:_OPENAI_REASONING_RE` catches them — update the regex, not the call sites, when new families ship.

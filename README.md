@@ -368,6 +368,8 @@ All user-owned tables (`profiles`, `scans`, `shopping_lists`, `list_items`, `dai
 
 Render's free tier sleeps after 15 minutes without traffic; the first request afterwards takes ~30–60 seconds, and the app shows a "server is waking up" message with a retry button. To keep it warm, point a free [UptimeRobot](https://uptimerobot.com) monitor at `https://<your-service>.onrender.com/healthz` every 5 minutes.
 
+Free OpenRouter models are sometimes withdrawn (the `:free` ID then stops working; it never switches to paid billing). `https://<your-service>.onrender.com/health/models` returns 200 when every model in the configured chains is still listed and free, and 503 with the offending model otherwise — point a second UptimeRobot monitor at it to get an email when a model needs replacing.
+
 ### Frontend → Vercel
 
 1. Vercel dashboard → **Add New → Project** → import this repo.
