@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 
 interface Store {
@@ -68,20 +69,12 @@ interface MapScreenProps {
       cuisine?: string;
       productName?: string;
       product_context?: ProductContext;
+      // Tab to return to from the banner's back button (the scan result / recipe stay mounted).
+      returnTo?: 'MagicLens' | 'List';
     };
   };
+  navigation?: any;
 }
-
-const CUISINE_FILTERS = [
-  { key: undefined, label: 'All' },
-  { key: 'indian', label: 'Indian' },
-  { key: 'italian', label: 'Italian' },
-  { key: 'korean', label: 'Korean' },
-  { key: 'chinese', label: 'Chinese' },
-  { key: 'mexican', label: 'Mexican' },
-  { key: 'japanese', label: 'Japanese' },
-  { key: 'middle_eastern', label: 'Middle Eastern' },
-];
 
 // JS port of the backend's haversine — used to decide when the user has panned far
 // enough from the last fetched center to surface "Search this area".
@@ -114,12 +107,16 @@ export default function MapScreen(props: MapScreenProps) {
   );
 }
 
-function MapScreenInner({ route }: MapScreenProps) {
+function MapScreenInner({ route, navigation }: MapScreenProps) {
   const { colors, isDark } = useTheme();
+  const { profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const initialCuisine = route?.params?.cuisine;
-  const productName = route?.params?.productName;
-  const productContext = route?.params?.product_context;
+  const params = route?.params;
+  // Opening the Map tab directly (no params) shows stores for the user's home cuisine.
+  const cuisine = params?.cuisine ?? profile?.home_country ?? undefined;
+  const productName = params?.productName;
+  const productContext = params?.product_context;
+  const returnTo = params?.returnTo;
 
   const map = useMap();
   // fetchStores runs before the map instance exists on first load, so read it through a ref.
@@ -130,10 +127,8 @@ function MapScreenInner({ route }: MapScreenProps) {
   const [lastFetchedCenter, setLastFetchedCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [showSearchHere, setShowSearchHere] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
-  const [hasFetched, setHasFetched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [activeCuisine, setActiveCuisine] = useState<string | undefined>(initialCuisine);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showStoreList, setShowStoreList] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -181,9 +176,8 @@ function MapScreenInner({ route }: MapScreenProps) {
         setStores(newStores);
         setLastFetchedCenter({ lat, lon });
         setShowSearchHere(false);
-        setHasFetched(true);
         if (newStores.length === 0) {
-          setErrorMsg('No stores found nearby. Try a different cuisine or pan to a denser area.');
+          setErrorMsg('No stores found nearby. Try panning the map to a busier area and tap Search this area.');
         } else {
           // Auto-fit: backend searches a 10km radius, but the initial viewport is ~5km,
           // so specialty results often land off-screen on first load. Frame them so the
@@ -203,9 +197,7 @@ function MapScreenInner({ route }: MapScreenProps) {
     [insets.top],
   );
 
-  // On mount: get location, decide whether to auto-fetch.
-  // Auto-fetch ONLY if we arrived with a cuisine, product name, or product_context.
-  // Otherwise the user pressed the Map tab cold — show the empty-state hint.
+  // On mount: get the user's location once.
   useEffect(() => {
     (async () => {
       let lat = 40.7128;
@@ -222,27 +214,19 @@ function MapScreenInner({ route }: MapScreenProps) {
       }
       setUserLocation({ lat, lon });
       setMapRegion({ latitude: lat, longitude: lon });
-      const hasContext = !!initialCuisine || !!productName || !!productContext;
-      if (hasContext) {
-        await fetchStores(lat, lon, initialCuisine, productContext);
-      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onChangeCuisine = async (cuisine?: string) => {
-    setActiveCuisine(cuisine);
-    if (!mapRegion) return;
-    // In recipe-coverage flow we keep product_context so coverage stays meaningful.
-    // Otherwise the chip means "switch to cuisine filter" so we drop it.
-    const isRecipeCoverage = !!productContext?.needed_items?.length;
-    await fetchStores(
-      mapRegion.latitude,
-      mapRegion.longitude,
-      cuisine,
-      isRecipeCoverage ? productContext : undefined,
-    );
-  };
+  // Search on first open and again every time we're navigated here with a new product or
+  // recipe — the tab stays mounted, so a mount-only fetch would keep showing stale stores.
+  useEffect(() => {
+    if (!userLocation) return;
+    setSelectedStore(null);
+    setShowStoreList(false);
+    fetchStores(userLocation.lat, userLocation.lon, cuisine, productContext);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, params]);
 
   const onMapIdle = () => {
     const center = mapRef.current?.getCenter();
@@ -261,7 +245,7 @@ function MapScreenInner({ route }: MapScreenProps) {
   const onSearchThisArea = async () => {
     if (!mapRegion) return;
     setShowSearchHere(false);
-    await fetchStores(mapRegion.latitude, mapRegion.longitude, activeCuisine, productContext);
+    await fetchStores(mapRegion.latitude, mapRegion.longitude, cuisine, productContext);
   };
 
   const onRecenter = () => {
@@ -328,13 +312,25 @@ function MapScreenInner({ route }: MapScreenProps) {
       {productName && (
         <View style={[styles.bannerSafe, { paddingTop: insets.top + 8 }]}>
           <View style={[styles.contextBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: 11, letterSpacing: 0.5 }}>FINDING STORES FOR</Text>
-            <Text
-              style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 2 }}
-              numberOfLines={2}
-            >
-              {productName}
-            </Text>
+            {!!returnTo && (
+              <TouchableOpacity
+                onPress={() => navigation?.navigate(returnTo)}
+                style={[styles.backButton, { backgroundColor: colors.primarySubtle }]}
+                accessibilityRole="button"
+                accessibilityLabel={returnTo === 'MagicLens' ? 'Back to scan result' : 'Back to recipe'}
+              >
+                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11, letterSpacing: 0.5 }}>FINDING STORES FOR</Text>
+              <Text
+                style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 2 }}
+                numberOfLines={2}
+              >
+                {productName}
+              </Text>
+            </View>
           </View>
         </View>
       )}
@@ -391,41 +387,6 @@ function MapScreenInner({ route }: MapScreenProps) {
         </Map>
       </View>
 
-      {/* Cuisine filter chips — hidden in recipe-coverage flow because they conflict with
-          the coverage view (tapping a cuisine narrows the store set but the user almost always
-          wants the full coverage ranking). */}
-      {!isRecipeFlow && (
-        <View style={[styles.filterRow, { top: productName ? insets.top + 92 : insets.top + 12 }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          >
-            {CUISINE_FILTERS.map(({ key, label }) => (
-              <TouchableOpacity
-                key={key ?? 'all'}
-                onPress={() => onChangeCuisine(key)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: activeCuisine === key ? colors.primary : colors.surface,
-                    borderColor: activeCuisine === key ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <Text style={{
-                  color: activeCuisine === key ? '#FFF' : colors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: '500',
-                }}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
       {/* "Search this area" pill — appears after the user pans >1 km from the last fetched center */}
       {showSearchHere && !loading && (
         <TouchableOpacity
@@ -433,9 +394,7 @@ function MapScreenInner({ route }: MapScreenProps) {
           style={[
             styles.searchHere,
             {
-              top: isRecipeFlow
-                ? (productName ? insets.top + 90 : insets.top + 12)
-                : (productName ? insets.top + 150 : insets.top + 70),
+              top: productName ? insets.top + 92 : insets.top + 12,
               backgroundColor: colors.primary,
             },
           ]}
@@ -453,19 +412,6 @@ function MapScreenInner({ route }: MapScreenProps) {
       >
         <MaterialCommunityIcons name="crosshairs-gps" size={22} color={colors.primary} />
       </TouchableOpacity>
-      )}
-
-      {/* Empty-state hint card — only on cold open with no context */}
-      {!hasFetched && !loading && !productName && (
-        <View pointerEvents="box-none" style={styles.hintWrap}>
-          <View style={[styles.hintCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <MaterialCommunityIcons name="map-search-outline" size={32} color={colors.primary} />
-            <Text style={[styles.hintTitle, { color: colors.textPrimary }]}>Pick a cuisine to see stores</Text>
-            <Text style={[styles.hintBody, { color: colors.textSecondary }]}>
-              Tap a chip above, scan a product, or import a recipe — I'll show you the right kind of store nearby.
-            </Text>
-          </View>
-        </View>
       )}
 
       {/* Store detail bottom sheet (from marker tap) */}
@@ -687,18 +633,17 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   bannerSafe: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  backButton: {
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
   contextBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     margin: 12,
     marginTop: 8,
     padding: 12,
     borderRadius: 12,
-    borderWidth: 1,
-  },
-  filterRow: { position: 'absolute', left: 0, right: 0, zIndex: 9 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
     borderWidth: 1,
   },
   searchHere: {
@@ -734,23 +679,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
     zIndex: 7,
-  },
-  hintWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  hintCard: {
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    maxWidth: 320,
   },
   hintTitle: { fontSize: 16, fontWeight: '700', marginTop: 12, textAlign: 'center' },
   hintBody: { fontSize: 13, marginTop: 6, textAlign: 'center', lineHeight: 19 },

@@ -122,6 +122,7 @@ export default function MagicLensScreen({ navigation }: { navigation?: any }) {
         onReset={reset}
         homeCountry={countryName(profile?.home_country)}
         onFindStores={result.real_version_name ? () => navigation?.navigate('Map', {
+          returnTo: 'MagicLens',
           cuisine: profile?.home_country,
           productName: result.real_version_name,
           product_context: {

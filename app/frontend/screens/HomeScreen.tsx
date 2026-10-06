@@ -61,7 +61,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const QUICK_ACTIONS = [
     { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: '#10B981', onPress: () => navigation?.navigate('List') },
-    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: '#F472B6', onPress: () => navigation?.navigate('Map') },
+    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: '#F472B6', onPress: () => navigation?.navigate('Map', {}) },
   ];
 
   const scoreColor = (s: number) => s >= 80 ? colors.scoreHigh : s >= 50 ? colors.scoreMid : colors.scoreLow;

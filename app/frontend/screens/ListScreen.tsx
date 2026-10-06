@@ -160,6 +160,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
               }
               const breadth = (anySpecialty && anyMainstream) ? 'both' : (anySpecialty ? 'both' : 'mainstream');
               navigation.navigate('Map', {
+                returnTo: 'List',
                 cuisine: profile?.home_country,
                 productName: `${dishName} ingredients`,
                 product_context: {
@@ -190,6 +191,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
                 onPress={() => {
                   if (!navigation) return;
                   navigation.navigate('Map', {
+                returnTo: 'List',
                     cuisine: profile?.home_country,
                     productName: ing.us_equivalent_product || ing.original_ingredient,
                     product_context: {
