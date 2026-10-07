@@ -3,11 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useServerStatus } from '../context/ServerStatusContext';
 
-// Inline "waking up the server" banner: a row of food emojis fills in one by one like a
-// progress bar while the free-tier backend boots, then flips to a short "Ready" state.
+// Inline "waking up the server" banner: a row of emojis fills in one by one like a progress
+// bar while the free-tier backend boots — a little shopping trip from search to cart — then
+// flips to a short "Ready" state.
 // Renders nothing once the server is up (or if it answered straight away).
 
-const FOODS = ['🍅', '🥖', '🧀', '🌶️', '🍚', '🥑', '🍜', '🥟'];
+const FOODS = ['🔍', '🧺', '🍅', '🥖', '🧀', '🌶️', '🥫', '🛒'];
 const STEP_MS = 450;
 
 export default function ServerWakeBanner({ style }: { style?: any }) {
@@ -41,11 +42,11 @@ export default function ServerWakeBanner({ style }: { style?: any }) {
         ))}
       </View>
       <Text style={[styles.title, { color: ready ? colors.matchText : colors.highlightText }]}>
-        {ready ? 'Ready — enjoy!' : 'Warming up the kitchen…'}
+        {ready ? 'All set — happy shopping!' : 'Getting your search ready…'}
       </Text>
       {!ready && (
         <Text style={[styles.sub, { color: colors.highlightText }]}>
-          Our free server naps when it's quiet. This takes about 30 seconds.
+          Our free server naps when it's quiet — waking it takes about 30 seconds.
         </Text>
       )}
     </View>
