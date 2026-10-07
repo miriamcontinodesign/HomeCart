@@ -218,6 +218,8 @@ app/migrations/002_store_cache_chains.sql
 app/migrations/003_product_availability.sql
 app/migrations/004_fix_handle_new_user.sql
 app/migrations/005_daily_usage.sql
+app/migrations/006_history_saved.sql
+app/migrations/007_demo_cleanup.sql      # pg_cron: deletes demo accounts after 1 hour
 ```
 
 Then set **Authentication → URL Configuration → Site URL** to wherever the frontend runs (`http://localhost:8081` locally), so email-confirmation links land back in the app.

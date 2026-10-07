@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Platform, ActivityIndicator, TextInput, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { Alert } from '../lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
 import ServerWakeBanner from '../components/ServerWakeBanner';
+import Captcha, { CaptchaHandle } from '../components/Captcha';
 import { PERSONAS, Persona, startDemo } from '../lib/demo';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -23,12 +24,14 @@ export default function AuthScreen() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [demoStarting, setDemoStarting] = useState<string | null>(null);
   const [demoError, setDemoError] = useState<string | null>(null);
+  const captcha = useRef<CaptchaHandle>(null);
 
   const tryDemo = async (p: Persona) => {
     setDemoStarting(p.id);
     setDemoError(null);
     try {
-      await startDemo(p);   // AuthContext takes over once the anonymous session exists
+      const captchaToken = await captcha.current?.getToken();
+      await startDemo(p, captchaToken);   // AuthContext takes over once the anonymous session exists
     } catch (e: any) {
       setDemoError(/anonymous/i.test(e?.message || '')
         ? 'The demo is switched off right now. Please sign up instead.'
@@ -46,7 +49,13 @@ export default function AuthScreen() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo: window.location.origin });
+    let error: { message: string } | null = null;
+    try {
+      const captchaToken = await captcha.current?.getToken();
+      ({ error } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo: window.location.origin, captchaToken }));
+    } catch (e: any) {
+      error = { message: e?.message || 'unknown error' };
+    }
     setLoading(false);
     // Same message whether or not the address has an account, so the form can't be used to
     // discover who is registered.
@@ -73,6 +82,7 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
+      const captchaToken = await captcha.current?.getToken();
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -83,6 +93,7 @@ export default function AuthScreen() {
             // (live site or localhost). Must be listed in Supabase → Auth → Redirect URLs,
             // otherwise Supabase falls back to the project's Site URL.
             emailRedirectTo: window.location.origin,
+            captchaToken,
           },
         });
         if (error) throw error;
@@ -90,7 +101,7 @@ export default function AuthScreen() {
           Alert.alert('Success', 'Please check your email for the confirmation link.');
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
         if (error) throw error;
       }
     } catch (err: any) {
@@ -215,7 +226,7 @@ export default function AuthScreen() {
               <View>
                 <Text style={[styles.demoTitle, { color: colors.textPrimary }]}>Explore HomeCart as…</Text>
                 <Text style={[styles.demoSub, { color: colors.textSecondary }]}>
-                  A private demo account with a ready-made profile. Nothing you do affects anyone else.
+                  A private demo account with a ready-made profile. Nothing you do affects anyone else. Demos last one hour, then they're deleted automatically.
                 </Text>
                 {PERSONAS.map(p => (
                   <TouchableOpacity
@@ -239,6 +250,9 @@ export default function AuthScreen() {
                 {!!demoError && <Text style={[styles.resetMessage, { color: colors.errorText }]}>{demoError}</Text>}
               </View>
             )}
+
+            {/* Invisible: runs when one of the actions above is pressed. */}
+            <Captcha ref={captcha} />
           </View>
 
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>

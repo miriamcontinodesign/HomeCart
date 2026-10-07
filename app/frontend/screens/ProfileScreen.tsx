@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import CountryPicker from '../components/CountryPicker';
 import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
+import Captcha, { CaptchaHandle } from '../components/Captcha';
 import AreaSearch from '../components/AreaSearch';
 import { Area } from '../lib/area';
 
@@ -42,7 +43,7 @@ export default function ProfileScreen() {
           <View style={[styles.demoBanner, { backgroundColor: colors.highlightBg, borderColor: colors.borderDefault }]}>
             <Text style={[styles.demoBannerTitle, { color: colors.highlightText }]}>You're using a demo account</Text>
             <Text style={[styles.demoBannerText, { color: colors.highlightText }]}>
-              Explore freely — this profile is temporary. Ending the demo signs you out and its history is not kept.
+              Explore freely — this profile is temporary. Demos last one hour: after that you're signed out and the demo's history is deleted. You can start a new one anytime.
             </Text>
           </View>
         )}
@@ -200,6 +201,7 @@ function ChangePasswordSheet({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const captcha = useRef<CaptchaHandle>(null);
 
   React.useEffect(() => {
     if (visible) {
@@ -220,9 +222,11 @@ function ChangePasswordSheet({
     setSaving(true);
     setError(null);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password: current });
+      // Re-checking the current password is a sign-in, so it needs a CAPTCHA token too.
+      const captchaToken = await captcha.current?.getToken();
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password: current, options: { captchaToken } });
       if (authError) {
-        setError('Your current password is incorrect.');
+        setError(/captcha/i.test(authError.message) ? 'The security check failed. Please try again.' : 'Your current password is incorrect.');
         return;
       }
       const { error: updateError } = await supabase.auth.updateUser({ password: next });
@@ -275,6 +279,7 @@ function ChangePasswordSheet({
               {!!(validationError || error) && (
                 <Text style={[styles.sheetError, { color: colors.errorText, marginTop: 14 }]}>{error || validationError}</Text>
               )}
+              <Captcha ref={captcha} />
             </ScrollView>
             <TouchableOpacity
               onPress={save}

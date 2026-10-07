@@ -66,9 +66,11 @@ export function personaProfile(p: Persona) {
   };
 }
 
-export async function startDemo(p: Persona): Promise<void> {
+export async function startDemo(p: Persona, captchaToken?: string): Promise<void> {
   pending = p;
-  const { error } = await supabase.auth.signInAnonymously({ options: { data: { full_name: p.name, demo_persona: p.id } } });
+  const { error } = await supabase.auth.signInAnonymously({
+    options: { data: { full_name: p.name, demo_persona: p.id }, captchaToken },
+  });
   if (error) {
     pending = null;
     throw error;
