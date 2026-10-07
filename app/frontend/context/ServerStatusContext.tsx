@@ -17,10 +17,22 @@ export type ServerStatus = 'checking' | 'waking' | 'ready' | 'hidden';
 
 const ServerStatusContext = createContext<ServerStatus>('checking');
 
+// `?preview=wake` pins the banner in its warming-up state (for demos and screenshots);
+// `?preview=ready` shows the "Ready" state. Neither pings the server.
+function previewStatus(): ServerStatus | null {
+  try {
+    const p = new URLSearchParams(window.location.search).get('preview');
+    return p === 'wake' ? 'waking' : p === 'ready' ? 'ready' : null;
+  } catch {
+    return null;
+  }
+}
+
 export const ServerStatusProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [status, setStatus] = useState<ServerStatus>('checking');
+  const [status, setStatus] = useState<ServerStatus>(() => previewStatus() ?? 'checking');
 
   useEffect(() => {
+    if (previewStatus()) return;
     let cancelled = false;
     let controller: AbortController | null = null;
     const started = Date.now();
