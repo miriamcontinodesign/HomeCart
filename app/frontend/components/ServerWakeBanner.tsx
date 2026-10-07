@@ -42,7 +42,7 @@ export default function ServerWakeBanner({ style }: { style?: any }) {
         ))}
       </View>
       <Text style={[styles.title, { color: ready ? colors.matchText : colors.highlightText }]}>
-        {ready ? 'All set — happy shopping!' : 'Getting your search ready…'}
+        {ready ? 'All set!' : 'Stocking the shelves…'}
       </Text>
       {!ready && (
         <Text style={[styles.sub, { color: colors.highlightText }]}>
