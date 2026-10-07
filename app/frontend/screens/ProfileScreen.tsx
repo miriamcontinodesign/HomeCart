@@ -19,6 +19,7 @@ export default function ProfileScreen() {
   const [countryOpen, setCountryOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [areaOpen, setAreaOpen] = useState(false);
+  const isDemo = !!user?.is_anonymous;
 
   const fullName = user?.user_metadata?.full_name || profile?.full_name || 'Traveler';
   const email = user?.email || '';
@@ -36,6 +37,15 @@ export default function ProfileScreen() {
           <Text style={[styles.name, { color: colors.textPrimary }]}>{fullName}</Text>
           {!!email && <Text style={[styles.email, { color: colors.textSecondary }]}>{email}</Text>}
         </View>
+
+        {isDemo && (
+          <View style={[styles.demoBanner, { backgroundColor: colors.highlightBg, borderColor: colors.borderDefault }]}>
+            <Text style={[styles.demoBannerTitle, { color: colors.highlightText }]}>You're using a demo account</Text>
+            <Text style={[styles.demoBannerText, { color: colors.highlightText }]}>
+              Explore freely — this profile is temporary. Ending the demo signs you out and its history is not kept.
+            </Text>
+          </View>
+        )}
 
         {/* Profile info section */}
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>YOUR PROFILE</Text>
@@ -89,21 +99,24 @@ export default function ProfileScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setPasswordOpen(true)}
-          style={[styles.settingsRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, marginTop: 10 }]}
-        >
-          <View style={[styles.infoIconWrap, { backgroundColor: colors.accentSubtle }]}>
-            <MaterialCommunityIcons name="lock-reset" size={18} color={colors.accentIcon} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>Change password</Text>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary, fontWeight: '400', letterSpacing: 0 }]}>
-              Update the password you sign in with
-            </Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
+        {/* Demo (anonymous) accounts have no password to change. */}
+        {!isDemo && (
+          <TouchableOpacity
+            onPress={() => setPasswordOpen(true)}
+            style={[styles.settingsRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, marginTop: 10 }]}
+          >
+            <View style={[styles.infoIconWrap, { backgroundColor: colors.accentSubtle }]}>
+              <MaterialCommunityIcons name="lock-reset" size={18} color={colors.accentIcon} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>Change password</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary, fontWeight: '400', letterSpacing: 0 }]}>
+                Update the password you sign in with
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
 
         {/* Sign out */}
         <TouchableOpacity
@@ -111,7 +124,7 @@ export default function ProfileScreen() {
           style={[styles.signOutButton, { backgroundColor: colors.errorBg, borderColor: colors.borderDefault }]}
         >
           <MaterialCommunityIcons name="logout" size={20} color={colors.errorText} />
-          <Text style={[styles.signOutText, { color: colors.errorText }]}>Sign Out</Text>
+          <Text style={[styles.signOutText, { color: colors.errorText }]}>{isDemo ? 'End demo' : 'Sign Out'}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 32 }} />
@@ -423,6 +436,9 @@ function ChangeCountrySheet({
 }
 
 const styles = StyleSheet.create({
+  demoBanner: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  demoBannerTitle: { fontSize: 15, fontWeight: '800' },
+  demoBannerText: { fontSize: 13, lineHeight: 18, marginTop: 4 },
   sheet: { flex: 1, padding: 20, width: '100%', maxWidth: 640, alignSelf: 'center' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sheetTitle: { fontSize: 22, fontWeight: '700' },

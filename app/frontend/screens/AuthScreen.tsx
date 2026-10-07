@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
+import { PERSONAS, Persona, startDemo } from '../lib/demo';
 import { useTheme } from '../theme/ThemeContext';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -18,6 +19,22 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoStarting, setDemoStarting] = useState<string | null>(null);
+  const [demoError, setDemoError] = useState<string | null>(null);
+
+  const tryDemo = async (p: Persona) => {
+    setDemoStarting(p.id);
+    setDemoError(null);
+    try {
+      await startDemo(p);   // AuthContext takes over once the anonymous session exists
+    } catch (e: any) {
+      setDemoError(/anonymous/i.test(e?.message || '')
+        ? 'The demo is switched off right now. Please sign up instead.'
+        : `Couldn't start the demo: ${e?.message || 'unknown error'}`);
+      setDemoStarting(null);
+    }
+  };
 
   // Emails a reset link. The link returns to this site; Supabase then fires PASSWORD_RECOVERY,
   // and App.tsx shows ResetPasswordScreen (see AuthContext `recovering`).
@@ -174,6 +191,50 @@ export default function AuthScreen() {
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
               </Text>
             </TouchableOpacity>
+
+            {/* Demo: anonymous account with a ready-made persona, no sign-up */}
+            <View style={styles.orRow}>
+              <View style={[styles.orLine, { backgroundColor: colors.borderDefault }]} />
+              <Text style={[styles.orText, { color: colors.textSecondary }]}>or</Text>
+              <View style={[styles.orLine, { backgroundColor: colors.borderDefault }]} />
+            </View>
+            {!demoOpen ? (
+              <TouchableOpacity
+                onPress={() => setDemoOpen(true)}
+                style={[styles.demoButton, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons name="play-circle-outline" size={20} color={colors.accentIcon} />
+                <Text style={[styles.demoButtonText, { color: colors.textPrimary }]}>Try the demo — no sign-up</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                <Text style={[styles.demoTitle, { color: colors.textPrimary }]}>Explore HomeCart as…</Text>
+                <Text style={[styles.demoSub, { color: colors.textSecondary }]}>
+                  A private demo account with a ready-made profile. Nothing you do affects anyone else.
+                </Text>
+                {PERSONAS.map(p => (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => tryDemo(p)}
+                    disabled={!!demoStarting}
+                    style={[styles.personaCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, opacity: demoStarting && demoStarting !== p.id ? 0.5 : 1 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Try the demo as ${p.name}, ${p.blurb}`}
+                  >
+                    <Text style={styles.personaFlag}>{p.flag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.personaName, { color: colors.textPrimary }]}>{p.name}</Text>
+                      <Text style={[styles.personaBlurb, { color: colors.textSecondary }]}>{p.blurb}</Text>
+                    </View>
+                    {demoStarting === p.id
+                      ? <ActivityIndicator color={colors.accentIcon} />
+                      : <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textSecondary} />}
+                  </TouchableOpacity>
+                ))}
+                {!!demoError && <Text style={[styles.resetMessage, { color: colors.errorText }]}>{demoError}</Text>}
+              </View>
+            )}
           </View>
 
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
@@ -188,6 +249,17 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 24, marginBottom: 16 },
+  orLine: { flex: 1, height: 1 },
+  orText: { fontSize: 12, fontWeight: '600' },
+  demoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 14, borderWidth: 1 },
+  demoButtonText: { fontSize: 15, fontWeight: '700' },
+  demoTitle: { fontSize: 17, fontWeight: '800' },
+  demoSub: { fontSize: 13, lineHeight: 18, marginTop: 4, marginBottom: 12 },
+  personaCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
+  personaFlag: { fontSize: 28 },
+  personaName: { fontSize: 16, fontWeight: '700' },
+  personaBlurb: { fontSize: 13, marginTop: 2 },
   forgotLink: { alignSelf: 'flex-end', marginTop: 10, paddingVertical: 4 },
   forgotText: { fontSize: 13, fontWeight: '600' },
   resetMessage: { fontSize: 13, lineHeight: 18, marginTop: 8 },

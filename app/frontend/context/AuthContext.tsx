@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { takePendingPersona, personaProfile } from '../lib/demo';
 
 // Mirrors the `profiles` table in app/migrations/001_initial_schema.sql.
 // All fields are optional because the trigger inserts a near-empty row on signup
@@ -88,6 +89,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(undefined);
     }
     try {
+      // "Try the demo": write the chosen persona's profile before the first read, so the
+      // visitor goes straight to Home instead of flashing through onboarding.
+      const persona = takePendingPersona();
+      if (persona) {
+        const { error: personaError } = await supabase
+          .from('profiles')
+          .upsert({ id: userId, ...personaProfile(persona), updated_at: new Date().toISOString() });
+        if (personaError) console.error('Demo profile setup failed:', personaError);
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')

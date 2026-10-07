@@ -94,6 +94,8 @@ Open Supabase SQL editor → paste the contents of `app/migrations/00X_*.sql` �
 
 **Two Google Maps keys.** The backend's `GOOGLE_MAPS_API_KEY` (Places API (New), server-side, no application restriction) and the frontend's `EXPO_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` (Maps JavaScript API, HTTP-referrer restricted). Never put the backend key in the frontend `.env` — it would ship to every visitor unrestricted.
 
+**Demo personas use anonymous sign-in.** "Try the demo" on the login screen calls `supabase.auth.signInAnonymously()` (needs Supabase → Authentication → Sign In / Providers → *Allow anonymous sign-ins*); `lib/demo.ts` holds the personas and AuthContext writes the chosen persona's profile before the first read, so the visitor skips onboarding. Anonymous users are `authenticated` for RLS and get their own data and daily quota; Profile hides Change password for them (`user.is_anonymous`).
+
 **Supabase session lives in localStorage** (`@react-native-async-storage/async-storage` is localStorage-backed on web). `detectSessionInUrl: true` lets the PKCE confirmation link sign the user in when it opens in the same browser that signed up.
 
 **Free-tier API ceilings.** OpenRouter spending cap is the real safety net (set at $20). Google Maps free tier is generous ($200/mo, ~6000 Places searches; Maps JavaScript map loads are billed separately). Render free tier: 750 hrs/mo + 15-min idle spin-down (UptimeRobot pings every 5 min). Supabase free tier: 50k MAU, 500MB DB.
