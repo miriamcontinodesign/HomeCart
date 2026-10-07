@@ -7,7 +7,9 @@ import {
   APIProvider, Map, AdvancedMarker, AdvancedMarkerAnchorPoint, ColorScheme, useMap,
 } from '@vis.gl/react-google-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
+import AreaSearch from '../components/AreaSearch';
+import { Alert } from '../lib/alert';
+import { Area, FALLBACK_AREA, getDeviceLocation, loadTempArea, saveTempArea, profileArea } from '../lib/area';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { matchTone, tones, tokens } from '../theme/colors';
@@ -123,7 +125,12 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
   // fetchStores runs before the map instance exists on first load, so read it through a ref.
   const mapRef = useRef<google.maps.Map | null>(null);
   mapRef.current = map;
+  // Where searches start from: a temporary area (holiday), GPS, the saved "Your area", or the
+  // fallback — see lib/area.ts. userLocation is only the GPS fix, for the "you are here" dot.
+  const [origin, setOrigin] = useState<{ area: Area; kind: 'temp' | 'gps' | 'home' | 'default' } | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [areaSheetOpen, setAreaSheetOpen] = useState(false);
+  const homeArea = profileArea(profile);
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null);
   const [lastFetchedCenter, setLastFetchedCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [showSearchHere, setShowSearchHere] = useState(false);
@@ -198,36 +205,66 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
     [insets.top],
   );
 
-  // On mount: get the user's location once.
+  // On mount: pick the starting area (temporary > GPS > saved area > fallback).
   useEffect(() => {
     (async () => {
-      let lat = 40.7128;
-      let lon = -74.0060;
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
-          lat = loc.coords.latitude;
-          lon = loc.coords.longitude;
+      const temp = loadTempArea();
+      let next: { area: Area; kind: 'temp' | 'gps' | 'home' | 'default' };
+      if (temp) {
+        next = { area: temp, kind: 'temp' };
+      } else {
+        const gps = await getDeviceLocation();
+        if (gps) {
+          setUserLocation({ lat: gps.lat, lon: gps.lon });
+          next = { area: gps, kind: 'gps' };
+        } else {
+          const home = profileArea(profile);
+          next = home ? { area: home, kind: 'home' } : { area: FALLBACK_AREA, kind: 'default' };
         }
-      } catch {
-        // Browser blocked or lacks geolocation (e.g. non-HTTPS origin) — fall back to NYC.
       }
-      setUserLocation({ lat, lon });
-      setMapRegion({ latitude: lat, longitude: lon });
+      setOrigin(next);
+      setMapRegion({ latitude: next.area.lat, longitude: next.area.lon });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Search on first open and again every time we're navigated here with a new product or
-  // recipe — the tab stays mounted, so a mount-only fetch would keep showing stale stores.
+  // If the user sets or changes "Your area" in Profile, follow it — unless they're using GPS
+  // or a temporary area on purpose.
   useEffect(() => {
-    if (!userLocation) return;
+    if (!homeArea || !origin || (origin.kind !== 'home' && origin.kind !== 'default')) return;
+    if (origin.area.lat === homeArea.lat && origin.area.lon === homeArea.lon) return;
+    setOrigin({ area: homeArea, kind: 'home' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeArea?.lat, homeArea?.lon]);
+
+  // Search on first open, whenever the starting area changes, and every time we're navigated
+  // here with a new product or recipe (the tab stays mounted).
+  useEffect(() => {
+    if (!origin) return;
     setSelectedStore(null);
     setShowStoreList(false);
-    fetchStores(userLocation.lat, userLocation.lon, cuisine, productContext);
+    panTo(origin.area.lat, origin.area.lon, USER_ZOOM);
+    fetchStores(origin.area.lat, origin.area.lon, cuisine, productContext);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, params]);
+  }, [origin, params]);
+
+  const chooseArea = (area: Area) => {
+    setAreaSheetOpen(false);
+    if (area.current) {
+      saveTempArea(null);
+      setUserLocation({ lat: area.lat, lon: area.lon });
+      setOrigin({ area, kind: 'gps' });
+    } else {
+      saveTempArea(area);   // temporary: this browser only, until cleared
+      setOrigin({ area, kind: 'temp' });
+    }
+  };
+
+  const clearTemporary = () => {
+    saveTempArea(null);
+    setAreaSheetOpen(false);
+    setOrigin(homeArea ? { area: homeArea, kind: 'home' } : { area: FALLBACK_AREA, kind: 'default' });
+  };
 
   const onMapIdle = () => {
     const center = mapRef.current?.getCenter();
@@ -249,18 +286,23 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
     await fetchStores(mapRegion.latitude, mapRegion.longitude, cuisine, productContext);
   };
 
-  const onRecenter = () => {
-    if (!userLocation) return;
-    panTo(userLocation.lat, userLocation.lon, USER_ZOOM);
+  // Crosshair button: switch to the device's current location (asks for permission if needed).
+  const onRecenter = async () => {
+    const gps = await getDeviceLocation();
+    if (!gps) {
+      Alert.alert('Location unavailable', 'Allow location for this site in your browser settings, or tap the location at the top of the map to pick a city.');
+      return;
+    }
+    chooseArea(gps);
   };
 
   // Fit the map to all current stores, leaving room at the bottom for the open list sheet
   // so markers don't get hidden under it.
   const fitToAllStores = useCallback(() => {
     if (stores.length === 0) return;
-    fitTo(userLocation ? [...stores, userLocation] : stores, { top: insets.top + 120, right: 60, bottom: 560, left: 60 });
+    fitTo(origin ? [...stores, origin.area] : stores, { top: insets.top + 120, right: 60, bottom: 560, left: 60 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stores, userLocation, insets.top]);
+  }, [stores, origin, insets.top]);
 
   // Pan to a single store and open its detail sheet. Used from the list rows.
   const focusOnStore = useCallback((store: Store) => {
@@ -379,6 +421,69 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
         </Map>
       </View>
 
+      {/* Where the search starts from — tap to change (temporary areas don't touch the profile) */}
+      {origin && (
+        <View style={[styles.areaChipRow, { top: productName ? insets.top + 92 : insets.top + 12 }]} pointerEvents="box-none">
+          <TouchableOpacity
+            onPress={() => setAreaSheetOpen(true)}
+            style={[styles.areaChip, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Searching near ${origin.area.label}. Change location`}
+          >
+            <MaterialCommunityIcons
+              name={origin.kind === 'gps' ? 'crosshairs-gps' : 'map-marker'}
+              size={16}
+              color={colors.accentIcon}
+            />
+            <Text style={[styles.areaChipText, { color: colors.textPrimary }]} numberOfLines={1}>
+              {origin.kind === 'gps' ? 'Near you' : origin.area.label}
+            </Text>
+            {origin.kind === 'temp' && (
+              <Text style={[styles.areaChipTag, { color: colors.highlightText, backgroundColor: colors.highlightBg }]}>temporary</Text>
+            )}
+            <MaterialCommunityIcons name="chevron-down" size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+          {origin.kind === 'temp' && (
+            <TouchableOpacity
+              onPress={clearTemporary}
+              style={[styles.areaClear, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
+              accessibilityRole="button"
+              accessibilityLabel="Clear temporary location"
+            >
+              <MaterialCommunityIcons name="close" size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      <Modal visible={areaSheetOpen} animationType="slide" transparent onRequestClose={() => setAreaSheetOpen(false)}>
+        <View style={[styles.modalBackdrop, { backgroundColor: tokens.scrim }]}>
+          <View style={[styles.areaSheet, { backgroundColor: colors.bgApp }]}>
+            <View style={styles.areaSheetHeader}>
+              <Text style={[styles.areaSheetTitle, { color: colors.textPrimary }]}>Search stores near…</Text>
+              <TouchableOpacity onPress={() => setAreaSheetOpen(false)} accessibilityLabel="Close">
+                <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.areaSheetSub, { color: colors.textSecondary }]}>
+              Travelling? Pick any city — it's temporary and won't change your saved area.
+            </Text>
+            {homeArea && origin?.kind !== 'home' && (
+              <TouchableOpacity
+                onPress={clearTemporary}
+                style={[styles.areaOption, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
+              >
+                <MaterialCommunityIcons name="home-outline" size={20} color={colors.accentIcon} />
+                <Text style={[styles.areaOptionText, { color: colors.textPrimary }]} numberOfLines={1}>
+                  Back to my area · {homeArea.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <AreaSearch onPick={chooseArea} placeholder="City or ZIP code, e.g. Rome" autoFocus />
+          </View>
+        </View>
+      </Modal>
+
       {/* "Search this area" pill — appears after the user pans >1 km from the last fetched center */}
       {showSearchHere && !loading && (
         <TouchableOpacity
@@ -386,7 +491,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           style={[
             styles.searchHere,
             {
-              top: productName ? insets.top + 92 : insets.top + 12,
+              top: productName ? insets.top + 144 : insets.top + 64,
               backgroundColor: colors.actionPrimary,
             },
           ]}
@@ -624,6 +729,20 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  areaChipRow: { position: 'absolute', left: 12, right: 12, zIndex: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  areaChip: {
+    flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
+  },
+  areaChipText: { flexShrink: 1, fontSize: 13, fontWeight: '700' },
+  areaChipTag: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+  areaClear: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  areaSheet: { maxHeight: '85%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 },
+  areaSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  areaSheetTitle: { fontSize: 20, fontWeight: '800' },
+  areaSheetSub: { fontSize: 13, lineHeight: 18, marginTop: 6, marginBottom: 16 },
+  areaOption: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
+  areaOptionText: { flex: 1, fontSize: 15, fontWeight: '600' },
   bannerSafe: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   backButton: {
     width: 36, height: 36, borderRadius: 18,

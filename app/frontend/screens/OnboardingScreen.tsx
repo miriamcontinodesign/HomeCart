@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import CountryPicker from '../components/CountryPicker';
 import { homeCuisinesFor } from '../lib/countries';
+import AreaSearch from '../components/AreaSearch';
+import { Area } from '../lib/area';
 
 
 const LANGUAGES = ['English', 'Spanish', 'Mandarin', 'Hindi', 'French', 'Japanese', 'Portuguese', 'Arabic', 'Korean', 'Vietnamese'];
@@ -20,6 +22,7 @@ export default function OnboardingScreen() {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [language, setLanguage] = useState('English');
   const [dietary, setDietary] = useState<string[]>([]);
+  const [area, setArea] = useState<Area | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -47,6 +50,9 @@ export default function OnboardingScreen() {
         home_cuisines: homeCuisinesFor(selectedCountryId, selectedRegion),
         preferred_language: language,
         dietary_preferences: dietary,
+        home_city: area ? (area.current ? 'Current location' : area.label) : null,
+        home_lat: area?.lat ?? null,
+        home_lng: area?.lon ?? null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
@@ -123,6 +129,21 @@ export default function OnboardingScreen() {
           );
         })}
       </View>
+
+      <Text style={[styles.header, styles.areaHeader, { color: colors.textPrimary }]}>Where do you usually shop?</Text>
+      <Text style={[styles.subheader, { color: colors.textSecondary }]}>
+        Optional: the map starts here when your location isn't available. You can change it later in Profile.
+      </Text>
+      {area ? (
+        <View style={[styles.areaPicked, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+          <Text style={[styles.areaPickedText, { color: colors.textPrimary }]} numberOfLines={1}>📍 {area.label}</Text>
+          <TouchableOpacity onPress={() => setArea(null)} accessibilityRole="button">
+            <Text style={{ color: colors.textAccent, fontWeight: '700' }}>Change</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <AreaSearch onPick={setArea} />
+      )}
     </View>
   );
 
@@ -186,6 +207,9 @@ const styles = StyleSheet.create({
   list: { gap: 10 },
   listItem: { padding: 16, borderRadius: 14, borderWidth: 1 },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  areaHeader: { fontSize: 20, marginTop: 32 },
+  areaPicked: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
+  areaPickedText: { flex: 1, fontSize: 15, fontWeight: '600' },
   chip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1 },
   errorBox: { marginHorizontal: 20, marginBottom: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
   errorText: { fontSize: 13, lineHeight: 18 },

@@ -17,6 +17,9 @@ Two deployable surfaces plus one Postgres schema, one budget envelope to protect
 - `POST /recipe` — text LLM call returning structured JSON ingredients for a dish
 - `POST /product-search` — text LLM call: a product from any country ("mascarpone") → its American versions; uses the curated `equivalences` table as a trusted reference and counts against the scan quota Scans and searches are both stored in `scans` (`source` = scan/search, `saved` = bookmark, `budget` = AI price-tier estimate; migration 006) and both return the row `id` so the app can bookmark it; the History tab reads that table.
 - `POST /stores/nearby` — Google Places (New) Text Search with cuisine + product-aware ranking
+- `GET /geocode?q=` + `GET /geocode/place?id=` — Places Autocomplete (cities / ZIPs) and Place Details for "Your area" and the map's temporary location; signed-in users only so they can't burn the Maps credit.
+
+**Map starting point** (`lib/area.ts`): a temporary area picked on the map (localStorage, this browser only) → device GPS → the saved "Your area" (`profiles.home_city/home_lat/home_lng`, set in onboarding or Profile) → New York fallback.
 
 UptimeRobot pings `/healthz` every 5 min to fight Render's 15-min idle spin-down. Render reads `app/backend/render.yaml` as a Blueprint on push to `main`.
 

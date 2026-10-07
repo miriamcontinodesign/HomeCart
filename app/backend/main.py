@@ -1023,6 +1023,78 @@ async def _search_places(query: str, lat: float, lon: float, radius_m: int = 100
         return r.json().get("places", [])
 
 
+PLACES_AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete"
+_AREA_TYPES = ["locality", "postal_code", "sublocality", "administrative_area_level_3"]
+
+
+def _require_maps(user_id: Optional[str]) -> None:
+    # Signed-in users only, so these endpoints can't be used to burn the Google credit.
+    if not user_id:
+        raise HTTPException(401, "Sign in to search for a location.")
+    if not GOOGLE_MAPS_API_KEY:
+        raise HTTPException(503, "Google Maps API key not configured")
+
+
+@app.get("/geocode")
+async def geocode(q: str, user_id: Optional[str] = Depends(get_user_id)):
+    """Type-ahead for "Your area" and the map's temporary location: city / ZIP suggestions.
+    Places Autocomplete (New) handles local names ("Napoli") and partial input ("Jersey Ci");
+    coordinates come from /geocode/place once the user picks one."""
+    _require_maps(user_id)
+    query = q.strip()[:120]
+    if len(query) < 2:
+        return {"results": []}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(
+                PLACES_AUTOCOMPLETE_URL,
+                headers={"Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY},
+                json={"input": query, "includedPrimaryTypes": _AREA_TYPES},
+            )
+            r.raise_for_status()
+            suggestions = r.json().get("suggestions", [])
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"Location search failed: {e}")
+    results = []
+    for sug in suggestions[:5]:
+        pred = sug.get("placePrediction") or {}
+        if not pred.get("placeId"):
+            continue
+        results.append({
+            "place_id": pred["placeId"],
+            "label": (pred.get("structuredFormat") or {}).get("mainText", {}).get("text")
+                     or (pred.get("text") or {}).get("text"),
+            "address": (pred.get("text") or {}).get("text"),
+        })
+    return {"results": results}
+
+
+@app.get("/geocode/place")
+async def geocode_place(id: str, user_id: Optional[str] = Depends(get_user_id)):
+    """Coordinates for a place picked from /geocode."""
+    _require_maps(user_id)
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(
+                f"https://places.googleapis.com/v1/places/{id}",
+                headers={"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+                         "X-Goog-FieldMask": "displayName,formattedAddress,location"},
+            )
+            r.raise_for_status()
+            p = r.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"Location lookup failed: {e}")
+    loc = p.get("location") or {}
+    if "latitude" not in loc:
+        raise HTTPException(404, "That place has no location.")
+    return {
+        "label": (p.get("displayName") or {}).get("text") or p.get("formattedAddress"),
+        "address": p.get("formattedAddress"),
+        "lat": loc["latitude"],
+        "lon": loc["longitude"],
+    }
+
+
 def _classify_chain(display_name: str, chains: list) -> Optional[dict]:
     """Match a place's display name against known chain personas."""
     name_lower = display_name.lower()

@@ -9,6 +9,8 @@ import CountryPicker from '../components/CountryPicker';
 import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
+import AreaSearch from '../components/AreaSearch';
+import { Area } from '../lib/area';
 
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -16,6 +18,7 @@ export default function ProfileScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [areaOpen, setAreaOpen] = useState(false);
 
   const fullName = user?.user_metadata?.full_name || profile?.full_name || 'Traveler';
   const email = user?.email || '';
@@ -45,6 +48,14 @@ export default function ProfileScreen() {
             : 'Not set'}
           onPress={() => setCountryOpen(true)}
           accessibilityLabel="Change your nationality"
+          colors={colors}
+        />
+        <InfoRow
+          icon="map-marker-outline"
+          label="Your Area"
+          value={profile?.home_city || 'Not set — tap to add'}
+          onPress={() => setAreaOpen(true)}
+          accessibilityLabel="Change your area"
           colors={colors}
         />
         <InfoRow
@@ -107,6 +118,13 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <SettingsScreen visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AreaSheet
+        visible={areaOpen}
+        onClose={() => setAreaOpen(false)}
+        userId={user?.id}
+        current={profile?.home_city || null}
+        onSaved={refreshProfile}
+      />
       <ChangePasswordSheet
         visible={passwordOpen}
         onClose={() => setPasswordOpen(false)}
@@ -254,6 +272,70 @@ function ChangePasswordSheet({
             </TouchableOpacity>
           </>
         )}
+      </View>
+    </Modal>
+  );
+}
+
+// "Your area": the city / ZIP the map starts from when location isn't available. Saved to
+// profiles.home_city / home_lat / home_lng (temporary map areas never touch these).
+function AreaSheet({
+  visible, onClose, userId, current, onSaved,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  userId?: string;
+  current: string | null;
+  onSaved: () => Promise<void>;
+}) {
+  const { colors } = useTheme();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => { if (visible) setError(null); }, [visible]);
+
+  const save = async (area: Area | null) => {
+    if (!userId) return;
+    setSaving(true);
+    setError(null);
+    const { error: dbError } = await supabase.from('profiles').update({
+      home_city: area ? (area.current ? 'Current location' : area.label) : null,
+      home_lat: area?.lat ?? null,
+      home_lng: area?.lon ?? null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', userId);
+    setSaving(false);
+    if (dbError) {
+      setError(dbError.message);
+      return;
+    }
+    await onSaved();
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+      <View style={[styles.sheet, { backgroundColor: colors.bgApp }]}>
+        <View style={styles.sheetHeader}>
+          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Your area</Text>
+          <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
+            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.sheetSub, { color: colors.textSecondary }]}>
+          Where you usually shop. The map starts here when your current location isn't available.
+          {current ? `\nNow: ${current}` : ''}
+        </Text>
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+          <AreaSearch onPick={save} />
+          {saving && <ActivityIndicator color={colors.accentIcon} style={{ marginTop: 16 }} />}
+          {!!error && <Text style={[styles.sheetError, { color: colors.errorText, marginTop: 12 }]}>{error}</Text>}
+          {!!current && !saving && (
+            <TouchableOpacity onPress={() => save(null)} style={{ marginTop: 20, alignSelf: 'flex-start' }}>
+              <Text style={{ color: colors.textAccent, fontWeight: '700' }}>Remove my area</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </View>
     </Modal>
   );
