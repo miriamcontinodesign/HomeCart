@@ -9,6 +9,7 @@ import { matchTone, tones } from '../theme/colors';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
+import ServerWakeBanner from '../components/ServerWakeBanner';
 
 
 interface RecentScan {
@@ -131,6 +132,8 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={[styles.avatarText, { color: colors.onActionPrimary }]}>{firstName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
+
+        <ServerWakeBanner />
 
         {/* Scan on one side, search on the other */}
         <View style={styles.entryRow}>

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
+import ServerWakeBanner from '../components/ServerWakeBanner';
 import { PERSONAS, Persona, startDemo } from '../lib/demo';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -115,6 +116,9 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.form}>
+            {/* Server warm-up status sits above the fields people are about to fill in. */}
+            <ServerWakeBanner />
+
             {isSignUp && (
               <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
