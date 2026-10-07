@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
   const [language, setLanguage] = useState('English');
   const [dietary, setDietary] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const TOTAL_STEPS = 3;
 
@@ -28,7 +29,15 @@ export default function OnboardingScreen() {
     setDietary(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
 
   const handleComplete = async () => {
-    if (!user || !selectedCountryId) return;
+    if (!selectedCountryId) {
+      setSaveError('Pick your home country first (step 1).');
+      return;
+    }
+    if (!user) {
+      setSaveError('Your session has expired. Please sign in again.');
+      return;
+    }
+    setSaveError(null);
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from('profiles').upsert({
@@ -43,8 +52,10 @@ export default function OnboardingScreen() {
       });
       if (error) throw error;
       await refreshProfile();
-    } catch (error) {
+    } catch (error: any) {
+      // Previously only logged, which left the user on a button that silently did nothing.
       console.error('Error saving profile:', error);
+      setSaveError(`We couldn't save your profile: ${error?.message || 'unknown error'}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -129,6 +140,11 @@ export default function OnboardingScreen() {
         {step === 3 && renderStep3()}
       </ScrollView>
 
+      {!!saveError && (
+        <View style={[styles.errorBox, { backgroundColor: colors.errorBg, borderColor: colors.borderDefault }]}>
+          <Text style={[styles.errorText, { color: colors.errorText }]}>{saveError}</Text>
+        </View>
+      )}
       <View style={[styles.footer, { borderTopColor: colors.borderDefault }]}>
         {step > 1 && (
           <TouchableOpacity
@@ -171,6 +187,8 @@ const styles = StyleSheet.create({
   listItem: { padding: 16, borderRadius: 14, borderWidth: 1 },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1 },
+  errorBox: { marginHorizontal: 20, marginBottom: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
+  errorText: { fontSize: 13, lineHeight: 18 },
   footer: { padding: 20, flexDirection: 'row', gap: 10, borderTopWidth: 1 },
   backButton: { flex: 1, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   backButtonText: { fontSize: 15, fontWeight: '600' },
