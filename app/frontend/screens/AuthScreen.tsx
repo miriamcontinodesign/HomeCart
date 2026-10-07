@@ -4,7 +4,10 @@ import { Alert } from '../lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import PasswordInput from '../components/PasswordInput';
 import { useTheme } from '../theme/ThemeContext';
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function AuthScreen() {
   const { colors } = useTheme();
@@ -12,6 +15,7 @@ export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
@@ -33,9 +37,20 @@ export default function AuthScreen() {
       : `If an account exists for ${trimmed}, we've emailed a link to reset your password.`);
   };
 
+  // Sign-up asks for the password twice so a typo can't lock the user out of a new account.
+  const signUpPasswordError =
+    !isSignUp ? null
+    : password && password.length < MIN_PASSWORD_LENGTH ? `Use at least ${MIN_PASSWORD_LENGTH} characters.`
+    : confirmPassword && confirmPassword !== password ? "The passwords don't match."
+    : null;
+
   const handleEmailAuth = async () => {
-    if (!email || !password || (isSignUp && !name)) {
+    if (!email || !password || (isSignUp && (!name || !confirmPassword))) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (signUpPasswordError) {
+      Alert.alert('Check your password', signUpPasswordError);
       return;
     }
     setLoading(true);
@@ -112,14 +127,27 @@ export default function AuthScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textPlaceholder}
+              <PasswordInput
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                accessibilityLabel="Password"
               />
+              {isSignUp && (
+                <>
+                  <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Confirm password</Text>
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    autoComplete="new-password"
+                    accessibilityLabel="Confirm password"
+                  />
+                  <Text style={[styles.resetMessage, { color: signUpPasswordError ? colors.errorText : colors.textSecondary }]}>
+                    {signUpPasswordError
+                      ?? (confirmPassword && confirmPassword === password ? 'Passwords match.' : `At least ${MIN_PASSWORD_LENGTH} characters.`)}
+                  </Text>
+                </>
+              )}
               {!isSignUp && (
                 <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink} accessibilityRole="button">
                   <Text style={[styles.forgotText, { color: colors.textAccent }]}>Forgot password?</Text>
@@ -141,7 +169,7 @@ export default function AuthScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.toggleButton} onPress={() => setIsSignUp(!isSignUp)}>
+            <TouchableOpacity style={styles.toggleButton} onPress={() => { setIsSignUp(!isSignUp); setConfirmPassword(''); setResetMessage(null); }}>
               <Text style={[styles.toggleText, { color: colors.textAccent }]}>
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
               </Text>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import SettingsScreen from './SettingsScreen';
 import CountryPicker from '../components/CountryPicker';
 import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
 import { supabase } from '../lib/supabase';
+import PasswordInput from '../components/PasswordInput';
 
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -206,15 +207,7 @@ function ChangePasswordSheet({
   const field = (label: string, value: string, onChange: (v: string) => void, autoComplete: 'current-password' | 'new-password') => (
     <View style={{ marginTop: 14 }}>
       <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <TextInput
-        style={[styles.passwordInput, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete={autoComplete}
-        placeholderTextColor={colors.textPlaceholder}
-      />
+      <PasswordInput value={value} onChangeText={onChange} autoComplete={autoComplete} placeholder="" accessibilityLabel={label} />
     </View>
   );
 
@@ -356,7 +349,6 @@ const styles = StyleSheet.create({
   saveButton: { padding: 15, borderRadius: 14, alignItems: 'center' },
   saveText: { fontWeight: '700', fontSize: 15 },
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  passwordInput: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 15 },
   doneWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   container: { flex: 1 },
   content: { padding: 20 },

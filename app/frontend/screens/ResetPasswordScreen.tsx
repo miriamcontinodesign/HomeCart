@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import PasswordInput from '../components/PasswordInput';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -38,14 +39,7 @@ export default function ResetPasswordScreen() {
   const input = (value: string, onChange: (v: string) => void, label: string) => (
     <View style={{ marginTop: 16 }}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      <TextInput
-        style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="new-password"
-      />
+      <PasswordInput value={value} onChangeText={onChange} autoComplete="new-password" accessibilityLabel={label} />
     </View>
   );
 
@@ -94,7 +88,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginTop: 16 },
   sub: { fontSize: 14, textAlign: 'center', marginTop: 6 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  input: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, fontSize: 15 },
   error: { fontSize: 13, marginTop: 12, textAlign: 'center' },
   button: { height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 24 },
   buttonText: { fontSize: 16, fontWeight: '700' },
