@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { FramedModal } from '../components/PhoneFrame';
 import { useTheme, ThemePreference } from '../theme/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import CountryPicker from '../components/CountryPicker';
@@ -275,7 +276,7 @@ function ChangePasswordSheet({
   );
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+    <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <View style={[styles.sheet, { backgroundColor: colors.bgApp }]}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Change password</Text>
@@ -319,7 +320,7 @@ function ChangePasswordSheet({
           </>
         )}
       </View>
-    </Modal>
+    </FramedModal>
   );
 }
 
@@ -360,7 +361,7 @@ function AreaSheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+    <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <View style={[styles.sheet, { backgroundColor: colors.bgApp }]}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Your area</Text>
@@ -383,7 +384,7 @@ function AreaSheet({
           )}
         </ScrollView>
       </View>
-    </Modal>
+    </FramedModal>
   );
 }
 
@@ -436,7 +437,7 @@ function ChangeCountrySheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+    <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <View style={[styles.sheet, { backgroundColor: colors.bgApp }]}>
         <View style={styles.sheetHeader}>
           <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Home country</Text>
@@ -464,7 +465,7 @@ function ChangeCountrySheet({
           {saving ? <ActivityIndicator color={colors.onActionPrimary} /> : <Text style={[styles.saveText, { color: colors.onActionPrimary }]}>Save</Text>}
         </TouchableOpacity>
       </View>
-    </Modal>
+    </FramedModal>
   );
 }
 

@@ -12,6 +12,7 @@ import { Alert } from '../lib/alert';
 import { Area, FALLBACK_AREA, getDeviceLocation, loadTempArea, saveTempArea, profileArea } from '../lib/area';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { themes } from '../theme/colors';
+import { FramedModal } from '../components/PhoneFrame';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
@@ -456,7 +457,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
         </View>
       )}
 
-      <Modal visible={areaSheetOpen} animationType="slide" transparent onRequestClose={() => setAreaSheetOpen(false)}>
+      <FramedModal visible={areaSheetOpen} animationType="slide" transparent onRequestClose={() => setAreaSheetOpen(false)}>
         <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
           <View style={[styles.areaSheet, { backgroundColor: colors.bgApp }]}>
             <View style={styles.areaSheetHeader}>
@@ -482,7 +483,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             <AreaSearch onPick={chooseArea} placeholder="City or ZIP code, e.g. Rome" autoFocus />
           </View>
         </View>
-      </Modal>
+      </FramedModal>
 
       {/* "Search this area" pill — appears after the user pans >1 km from the last fetched center */}
       {showSearchHere && !loading && (
@@ -612,7 +613,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       )}
 
       {/* Full store list sheet */}
-      <Modal visible={showStoreList} animationType="slide" transparent onRequestClose={() => setShowStoreList(false)}>
+      <FramedModal visible={showStoreList} animationType="slide" transparent onRequestClose={() => setShowStoreList(false)}>
         <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
           <View style={[styles.listSheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <View style={styles.listSheetHeader}>
@@ -721,7 +722,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </FramedModal>
     </View>
   );
 }

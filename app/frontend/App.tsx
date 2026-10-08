@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BrandLogo from './components/BrandLogo';
+import { AppFrame } from './components/PhoneFrame';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { loadByokKeys, clearLegacyByokKeys } from './lib/byok';
 import AuthScreen from './screens/AuthScreen';
@@ -210,19 +211,6 @@ function AppContent() {
   );
 }
 
-// The UI is designed phone-first; on wide screens keep it in a centered column
-// rather than stretching cards and the tab bar edge to edge.
-function AppFrame({ children }: { children: React.ReactNode }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.frameOuter, { backgroundColor: colors.bgApp }]}>
-      <View style={[styles.frameInner, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
 function ThemedStatusBar() {
   const { mode } = useTheme();
   return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
@@ -247,6 +235,4 @@ export default function App() {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  frameOuter: { flex: 1, alignItems: 'center' },
-  frameInner: { flex: 1, width: '100%', maxWidth: 640, borderLeftWidth: 1, borderRightWidth: 1 },
 });

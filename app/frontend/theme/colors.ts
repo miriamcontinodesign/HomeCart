@@ -34,7 +34,7 @@ export const palette = {
   // Dark mode ("Charcoal"): warm greys, plus deep tints of the brand colours for tinted
   // backgrounds (the dark-mode counterpart of the 50 stops).
   charcoal: {
-    50: '#F5F2EC', 300: '#B5B1A8', 400: '#7A776F', 600: '#34332F', 700: '#2A2926', 800: '#1F1F1D', 900: '#141413',
+    50: '#F5F2EC', 300: '#B5B1A8', 400: '#7A776F', 600: '#34332F', 700: '#2A2926', 800: '#1F1F1D', 900: '#141413', 950: '#0B0B0A',
   },
   deep: { orange: '#3A2114', saffron: '#33280F', lime: '#223010' },
 } as const;
@@ -46,6 +46,7 @@ const light = {
   bgApp: neutral[50],               // bg/app
   bgSurface: neutral[0],            // bg/surface — cards, inputs, sheets, tab bar
   bgMuted: neutral[100],            // bg/muted — low-emphasis chips
+  bgDesk: neutral[200],             // behind the phone-shaped frame on tablet/desktop
   borderDefault: neutral[200],      // border/default
   borderSubtle: neutral[100],
 
@@ -81,6 +82,7 @@ const light = {
   // Misc
   shadow: neutral[900],
   scrim: 'rgba(43, 27, 20, 0.5)',   // neutral-900 at 50% — behind modal sheets
+  frameShadow: 'rgba(43, 27, 20, 0.35)', // the phone frame's drop shadow on tablet/desktop
   mapUserDot: lime[500],
   mapUserDotRing: neutral[0],
 };
@@ -91,6 +93,7 @@ const dark: ThemeColors = {
   bgApp: charcoal[900],
   bgSurface: charcoal[800],
   bgMuted: charcoal[700],
+  bgDesk: charcoal[950],
   borderDefault: charcoal[600],
   borderSubtle: charcoal[700],
 
@@ -120,6 +123,7 @@ const dark: ThemeColors = {
 
   shadow: '#000000',
   scrim: 'rgba(0, 0, 0, 0.6)',
+  frameShadow: 'rgba(0, 0, 0, 0.7)',
   mapUserDot: lime[500],
   mapUserDotRing: neutral[0],
 };

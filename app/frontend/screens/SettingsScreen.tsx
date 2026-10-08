@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Modal, Linking, FlatList,
+  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Linking, FlatList,
 } from 'react-native';
 import { Alert } from '../lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FramedModal } from '../components/PhoneFrame';
 import { useTheme } from '../theme/ThemeContext';
 import {
   ByokKeys, loadByokKeys, saveByokKeys, clearAllByokKeys,
@@ -146,7 +147,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+    <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
@@ -253,7 +254,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
           onClose={() => setModelPicker(null)}
         />
       </SafeAreaView>
-    </Modal>
+    </FramedModal>
   );
 }
 
@@ -323,7 +324,7 @@ function ModelPickerModal({ visible, kind, models, currentId, colors, onPick, on
   colors: any; onPick: (id: string) => void; onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
+    <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
@@ -379,7 +380,7 @@ function ModelPickerModal({ visible, kind, models, currentId, colors, onPick, on
           }
         />
       </SafeAreaView>
-    </Modal>
+    </FramedModal>
   );
 }
 
