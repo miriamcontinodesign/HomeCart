@@ -2,30 +2,35 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
-import { COUNTRY_GROUPS, COUNTRIES } from '../lib/countries';
+import { COUNTRY_GROUPS, CountryGroup } from '../lib/countries';
 
 // Searchable country dropdown (flag + name, grouped by world region) plus optional region
-// chips. Shared by onboarding and the Profile "change home country" sheet.
+// chips. Used for the home country (onboarding, Profile) and, with `groups` from
+// lib/residence.ts, for the country the user lives in.
 export default function CountryPicker({
-  countryId, region, onChangeCountry, onChangeRegion,
+  countryId, region = '', onChangeCountry, onChangeRegion = () => {},
+  groups: allGroups = COUNTRY_GROUPS, placeholder = 'Choose your home country', label = 'Home country',
 }: {
   countryId: string;
-  region: string;
+  region?: string;
   onChangeCountry: (id: string) => void;
-  onChangeRegion: (region: string) => void;
+  onChangeRegion?: (region: string) => void;
+  groups?: CountryGroup[];
+  placeholder?: string;
+  label?: string;
 }) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(!countryId);
   const [query, setQuery] = useState('');
-  const selected = COUNTRIES.find(c => c.id === countryId);
+  const selected = useMemo(() => allGroups.flatMap(g => g.countries).find(c => c.id === countryId), [allGroups, countryId]);
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return COUNTRY_GROUPS;
-    return COUNTRY_GROUPS
+    if (!q) return allGroups;
+    return allGroups
       .map(g => ({ ...g, countries: g.countries.filter(c => c.name.toLowerCase().includes(q)) }))
       .filter(g => g.countries.length > 0);
-  }, [query]);
+  }, [query, allGroups]);
 
   const pick = (id: string) => {
     if (id !== countryId) {
@@ -43,7 +48,7 @@ export default function CountryPicker({
         onPress={() => setOpen(o => !o)}
         style={[styles.field, { backgroundColor: colors.bgSurface, borderColor: open ? colors.actionPrimary : colors.borderDefault }]}
         accessibilityRole="button"
-        accessibilityLabel={selected ? `Home country: ${selected.name}. Change` : 'Choose your home country'}
+        accessibilityLabel={selected ? `${label}: ${selected.name}. Change` : placeholder}
       >
         {selected ? (
           <>
@@ -51,7 +56,7 @@ export default function CountryPicker({
             <Text style={[styles.fieldText, { color: colors.textPrimary }]}>{selected.name}</Text>
           </>
         ) : (
-          <Text style={[styles.fieldText, { color: colors.textSecondary }]}>Choose your home country</Text>
+          <Text style={[styles.fieldText, { color: colors.textSecondary }]}>{placeholder}</Text>
         )}
         <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textSecondary} />
       </TouchableOpacity>

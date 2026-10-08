@@ -13,12 +13,14 @@ import PasswordInput from '../components/PasswordInput';
 import Captcha, { CaptchaHandle } from '../components/Captcha';
 import AreaSearch from '../components/AreaSearch';
 import { Area } from '../lib/area';
+import { RESIDENCE_GROUPS, residenceCountry, residenceName, residenceFromArea } from '../lib/residence';
 
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { colors, preference, setPreference } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [livingOpen, setLivingOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [areaOpen, setAreaOpen] = useState(false);
   const isDemo = !!user?.is_anonymous;
@@ -60,6 +62,14 @@ export default function ProfileScreen() {
             : 'Not set'}
           onPress={() => setCountryOpen(true)}
           accessibilityLabel="Change your nationality"
+          colors={colors}
+        />
+        <InfoRow
+          icon="home-map-marker"
+          label="Living in"
+          value={`${residenceCountry(profile?.residence_country).flag} ${residenceName(profile?.residence_country)}`}
+          onPress={() => setLivingOpen(true)}
+          accessibilityLabel="Change the country you live in"
           colors={colors}
         />
         <InfoRow
@@ -173,6 +183,15 @@ export default function ProfileScreen() {
         userId={user?.id}
         initialCountry={profile?.home_country || ''}
         initialRegion={profile?.home_region || ''}
+        onSaved={refreshProfile}
+      />
+      <ChangeCountrySheet
+        kind="residence"
+        visible={livingOpen}
+        onClose={() => setLivingOpen(false)}
+        userId={user?.id}
+        initialCountry={residenceCountry(profile?.residence_country).id}
+        initialRegion=""
         onSaved={refreshProfile}
       />
     </SafeAreaView>
@@ -349,6 +368,8 @@ function AreaSheet({
       home_city: area ? (area.current ? 'Current location' : area.label) : null,
       home_lat: area?.lat ?? null,
       home_lng: area?.lon ?? null,
+      // A searched place carries its country; keep "Living in" in step with it.
+      ...(residenceFromArea(area) ? { residence_country: residenceFromArea(area) } : {}),
       updated_at: new Date().toISOString(),
     }).eq('id', userId);
     setSaving(false);
@@ -388,9 +409,11 @@ function AreaSheet({
   );
 }
 
+// Home country (cuisine) or, with kind="residence", the country the user lives and shops in.
 function ChangeCountrySheet({
-  visible, onClose, userId, initialCountry, initialRegion, onSaved,
+  kind = 'home', visible, onClose, userId, initialCountry, initialRegion, onSaved,
 }: {
+  kind?: 'home' | 'residence';
   visible: boolean;
   onClose: () => void;
   userId?: string;
@@ -420,12 +443,14 @@ function ChangeCountrySheet({
     setSaving(true);
     setError(null);
     try {
-      const { error: dbError } = await supabase.from('profiles').update({
-        home_country: countryId,
-        home_region: region || null,
-        home_cuisines: homeCuisinesFor(countryId, region),
-        updated_at: new Date().toISOString(),
-      }).eq('id', userId);
+      const { error: dbError } = await supabase.from('profiles').update(kind === 'residence'
+        ? { residence_country: countryId, updated_at: new Date().toISOString() }
+        : {
+          home_country: countryId,
+          home_region: region || null,
+          home_cuisines: homeCuisinesFor(countryId, region),
+          updated_at: new Date().toISOString(),
+        }).eq('id', userId);
       if (dbError) throw dbError;
       await onSaved();
       onClose();
@@ -440,21 +465,33 @@ function ChangeCountrySheet({
     <FramedModal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="formSheet">
       <View style={[styles.sheet, { backgroundColor: colors.bgApp }]}>
         <View style={styles.sheetHeader}>
-          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>Home country</Text>
+          <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>{kind === 'residence' ? 'Living in' : 'Home country'}</Text>
           <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
             <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
         <Text style={[styles.sheetSub, { color: colors.textSecondary }]}>
-          Scans, recipes and store searches are tailored to this cuisine.
+          {kind === 'residence'
+            ? 'HomeCart suggests products, brands, aisles and prices for shops in this country.'
+            : 'Scans, recipes and store searches are tailored to this cuisine.'}
         </Text>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-          <CountryPicker
-            countryId={countryId}
-            region={region}
-            onChangeCountry={setCountryId}
-            onChangeRegion={setRegion}
-          />
+          {kind === 'residence' ? (
+            <CountryPicker
+              countryId={countryId}
+              onChangeCountry={setCountryId}
+              groups={RESIDENCE_GROUPS}
+              placeholder="Choose the country you live in"
+              label="Living in"
+            />
+          ) : (
+            <CountryPicker
+              countryId={countryId}
+              region={region}
+              onChangeCountry={setCountryId}
+              onChangeRegion={setRegion}
+            />
+          )}
         </ScrollView>
         {!!error && <Text style={[styles.sheetError, { color: colors.errorText }]}>{error}</Text>}
         <TouchableOpacity

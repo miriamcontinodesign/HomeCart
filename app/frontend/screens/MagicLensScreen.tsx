@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, TextInput 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { residenceName, residenceInText } from '../lib/residence';
 import { useTheme } from '../theme/ThemeContext';
 import { apiFetchJson } from '../lib/api';
 import { Alert } from '../lib/alert';
@@ -28,6 +29,8 @@ type UsEquivalent = {
   difference?: string | null;
   budget?: string | null;
   price_hint?: string | null;
+  image_url?: string | null;   // Open Food Facts photo, looked up by the backend
+  image_exact?: boolean;       // false = unbranded photo of the same kind of product
 };
 
 type ProductSearchResult = {
@@ -97,7 +100,7 @@ export default function MagicLensScreen({ navigation, route }: { navigation?: an
   const [lastFile, setLastFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Search by name: a product from any country -> its American versions.
+  // Search by name: a product from any country -> its versions where the user lives.
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchDone, setSearchDone] = useState(false);
@@ -127,6 +130,7 @@ export default function MagicLensScreen({ navigation, route }: { navigation?: an
             home_region: profile?.home_region,
             home_cuisines: profile?.home_cuisines || [],
             dietary_preferences: profile?.dietary_preferences || [],
+            living_country: residenceName(profile?.residence_country),
           },
         }),
       });
@@ -172,6 +176,7 @@ export default function MagicLensScreen({ navigation, route }: { navigation?: an
             home_region: profile?.home_region,
             home_cuisines: profile?.home_cuisines || [],
             dietary_preferences: profile?.dietary_preferences || [],
+            living_country: residenceName(profile?.residence_country),
           },
         }),
       });
@@ -335,13 +340,13 @@ export default function MagicLensScreen({ navigation, route }: { navigation?: an
               style={[styles.searchButton, { backgroundColor: colors.actionPrimary, opacity: query.trim() ? 1 : 0.5 }]}
               onPress={() => runSearch()}
               disabled={!query.trim()}
-              accessibilityLabel="Find the American version"
+              accessibilityLabel="Find the local version"
             >
               <MaterialCommunityIcons name="magnify" size={22} color={colors.onActionPrimary} />
             </TouchableOpacity>
           </View>
           <Text style={[styles.pickHint, { color: colors.textSecondary }]}>
-            A product from any country — I'll find its American version.
+            A product from any country — I'll find its version in {residenceInText(profile?.residence_country)}.
           </Text>
         </ScrollView>
       )}
@@ -354,6 +359,7 @@ function ProductSearchResultView({
 }: {
   result: ProductSearchResult; saved: boolean; onReset: () => void; onFindStores: () => void; colors: any;
 }) {
+  const { profile } = useAuth();
   const { tones, matchTone } = useTheme();
   const valueIdx = bestValueIndex(result.us_equivalents);
   return (
@@ -371,54 +377,71 @@ function ProductSearchResultView({
             <Text style={[styles.description, { color: colors.textSecondary }]}>{result.description}</Text>
           )}
 
-          {result.us_equivalents.length > 0 ? (
-            <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
-              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>AMERICAN VERSIONS</Text>
-              {result.us_equivalents.map((e, i) => (
-                <View key={`${e.name}-${i}`} style={[styles.matchRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.borderDefault }]}>
-                  <View style={styles.matchHeader}>
+        </View>
+
+        {/* One card per local version, with a product photo */}
+        {result.us_equivalents.length > 0 ? (
+          <>
+            <Text style={[styles.cardsHeading, { color: colors.textSecondary }]}>VERSIONS IN {residenceInText(profile?.residence_country).toUpperCase()}</Text>
+            {result.us_equivalents.map((e, i) => (
+              <View key={`${e.name}-${i}`} style={[styles.equivCard, { backgroundColor: colors.bgSurface, borderColor: i === 0 ? colors.matchBorder : colors.borderDefault }]}>
+                <View style={styles.equivTop}>
+                  <View>
+                    {e.image_url ? (
+                      <Image source={{ uri: e.image_url }} style={[styles.equivPhoto, { borderColor: colors.borderSubtle, backgroundColor: colors.photoMat }]} resizeMode="contain" accessibilityLabel={`${e.brand ? e.brand + ' ' : ''}${e.name}`} />
+                    ) : (
+                      <View style={[styles.equivPhoto, styles.equivPhotoEmpty, { backgroundColor: colors.accentSubtle, borderColor: colors.borderSubtle }]}>
+                        <MaterialCommunityIcons name="basket-outline" size={28} color={colors.accentIcon} />
+                      </View>
+                    )}
+                    {!!e.image_url && !e.image_exact && (
+                      <Text style={[styles.photoNote, { color: colors.textSecondary }]}>Similar product</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
                     <Text style={[styles.matchName, { color: colors.textPrimary }]}>{e.name}</Text>
-                    <View style={[styles.matchPill, { backgroundColor: matchTone(e.match_score).bg }]}>
+                    {!!e.brand && <Text style={[styles.equivMeta, { color: colors.textAccent }]}>{e.brand}</Text>}
+                    <View style={[styles.matchPill, { backgroundColor: matchTone(e.match_score).bg, alignSelf: 'flex-start', marginTop: 6 }]}>
                       <Text style={[styles.matchPillText, { color: matchTone(e.match_score).text }]}>{e.match_score}% match</Text>
                     </View>
                   </View>
-                  <View style={styles.tagRow}>
-                    {i === 0 && result.us_equivalents.length > 1 && <BestMatchTag />}
-                    {valueIdx === i && <BestValueTag />}
-                    <BudgetTag budget={e.budget} />
-                  </View>
-                  {!!e.brand && <Text style={[styles.equivMeta, { color: colors.textAccent }]}>{e.brand}</Text>}
-                  {!!e.price_hint && (
-                    <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>~{e.price_hint} (estimate)</Text>
-                  )}
-                  {!!e.aisle && (
-                    <View style={styles.aisleRow}>
-                      <MaterialCommunityIcons name="map-marker" size={13} color={colors.textSecondary} />
-                      <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>{e.aisle}</Text>
-                    </View>
-                  )}
-                  {!!e.difference && (
-                    <Text style={[styles.sectionText, { color: colors.textPrimary, marginTop: 4 }]}>How it differs: {e.difference}</Text>
-                  )}
-                  {!!e.tip && <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 4 }]}>{e.tip}</Text>}
                 </View>
-              ))}
-            </View>
-          ) : (
-            <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
-              <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
-                I couldn't find an American version for this one.
-              </Text>
-            </View>
-          )}
+                <View style={styles.tagRow}>
+                  {i === 0 && result.us_equivalents.length > 1 && <BestMatchTag />}
+                  {valueIdx === i && <BestValueTag />}
+                  <BudgetTag budget={e.budget} />
+                </View>
+                {!!e.price_hint && (
+                  <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>~{e.price_hint} (estimate)</Text>
+                )}
+                {!!e.aisle && (
+                  <View style={styles.aisleRow}>
+                    <MaterialCommunityIcons name="map-marker" size={13} color={colors.textSecondary} />
+                    <Text style={[styles.equivMeta, { color: colors.textSecondary }]}>{e.aisle}</Text>
+                  </View>
+                )}
+                {!!e.difference && (
+                  <Text style={[styles.sectionText, { color: colors.textPrimary, marginTop: 6 }]}>How it differs: {e.difference}</Text>
+                )}
+                {!!e.tip && <Text style={[styles.sectionText, { color: colors.textSecondary, marginTop: 4 }]}>{e.tip}</Text>}
+              </View>
+            ))}
+            <Text style={[styles.photoCredit, { color: colors.textSecondary }]}>Product photos: Open Food Facts</Text>
+          </>
+        ) : (
+          <View style={[styles.equivCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
+            <Text style={[styles.sectionText, { color: colors.textSecondary }]}>
+              I couldn't find a version of this sold in {residenceInText(profile?.residence_country)}.
+            </Text>
+          </View>
+        )}
 
-          {!!result.ai_tip && (
-            <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
-              <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
-              <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
-            </View>
-          )}
-        </View>
+        {!!result.ai_tip && (
+          <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border, marginTop: 0 }]}>
+            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
+            <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
+          </View>
+        )}
 
         {result.us_equivalents.length > 0 && (
           <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]} onPress={onFindStores}>
@@ -536,6 +559,13 @@ function ScanResultView({
 }
 
 const styles = StyleSheet.create({
+  cardsHeading: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, marginTop: 18, marginBottom: 8, marginLeft: 4 },
+  equivCard: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 12 },
+  equivTop: { flexDirection: 'row', gap: 12 },
+  equivPhoto: { width: 84, height: 84, borderRadius: 12, borderWidth: 1 },
+  equivPhotoEmpty: { alignItems: 'center', justifyContent: 'center' },
+  photoNote: { fontSize: 10, marginTop: 3, textAlign: 'center', width: 84 },
+  photoCredit: { fontSize: 11, textAlign: 'center', marginBottom: 6 },
   pickContainer: { flex: 1 },
   pickBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   pickIcon: { width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center' },

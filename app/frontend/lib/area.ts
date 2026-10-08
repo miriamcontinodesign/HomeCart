@@ -6,7 +6,8 @@
 import * as Location from 'expo-location';
 import { apiFetchJson } from './api';
 
-export type Area = { label: string; lat: number; lon: number; current?: boolean };  // current = from GPS
+// current = from GPS; countryCode = ISO code from the place lookup (absent for GPS and saved areas)
+export type Area = { label: string; lat: number; lon: number; current?: boolean; countryCode?: string | null };
 export type AreaSuggestion = { place_id: string; label: string; address: string };
 
 export const FALLBACK_AREA: Area = { label: 'New York, NY', lat: 40.7128, lon: -74.006 };
@@ -19,7 +20,7 @@ export async function searchAreas(q: string): Promise<AreaSuggestion[]> {
 export async function resolveArea(s: AreaSuggestion): Promise<Area> {
   const d = await apiFetchJson(`/geocode/place?id=${encodeURIComponent(s.place_id)}`);
   // Prefer the suggestion's full text ("Jersey City, NJ, USA") over the bare place name.
-  return { label: s.address || d.address || d.label, lat: d.lat, lon: d.lon };
+  return { label: s.address || d.address || d.label, lat: d.lat, lon: d.lon, countryCode: d.country_code ?? null };
 }
 
 // GPS with a timeout: browsers can sit on a pending permission prompt indefinitely.

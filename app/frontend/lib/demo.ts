@@ -62,6 +62,7 @@ export function personaProfile(p: Persona) {
     home_city: p.area.label,
     home_lat: p.area.lat,
     home_lng: p.area.lon,
+    residence_country: 'usa',   // every persona lives in the US
     onboarding_completed: true,
   };
 }

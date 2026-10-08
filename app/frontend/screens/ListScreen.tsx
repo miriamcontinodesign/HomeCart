@@ -5,6 +5,7 @@ import { describeError, FriendlyError } from '../lib/errors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { residenceName, residenceInText } from '../lib/residence';
 import { useTheme } from '../theme/ThemeContext';
 import { apiFetchJson } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -136,6 +137,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
             home_region: profile?.home_region,
             home_cuisines: profile?.home_cuisines || [],
             dietary_preferences: profile?.dietary_preferences || [],
+            living_country: residenceName(profile?.residence_country),
           },
         }),
       });
@@ -284,7 +286,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
         {section === 'import' ? (
           <>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Type a dish from home — I'll build your shopping list with US equivalents.
+              Type a dish from home — I'll build your shopping list with what to buy in {residenceInText(profile?.residence_country)}.
             </Text>
 
             <View style={styles.inputRow}>

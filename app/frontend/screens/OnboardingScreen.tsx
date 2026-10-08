@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import BrandLogo from '../components/BrandLogo';
+import { RESIDENCE_GROUPS, guessResidence, residenceFromArea } from '../lib/residence';
 import { useTheme } from '../theme/ThemeContext';
 import CountryPicker from '../components/CountryPicker';
 import { homeCuisinesFor } from '../lib/countries';
@@ -24,6 +25,7 @@ export default function OnboardingScreen() {
   const [language, setLanguage] = useState('English');
   const [dietary, setDietary] = useState<string[]>([]);
   const [area, setArea] = useState<Area | null>(null);
+  const [residenceId, setResidenceId] = useState(guessResidence);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -54,6 +56,8 @@ export default function OnboardingScreen() {
         home_city: area ? (area.current ? 'Current location' : area.label) : null,
         home_lat: area?.lat ?? null,
         home_lng: area?.lon ?? null,
+        // A searched shopping area knows its country; otherwise use the answer from step 1.
+        residence_country: residenceFromArea(area) ?? residenceId,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
@@ -80,6 +84,18 @@ export default function OnboardingScreen() {
         region={selectedRegion}
         onChangeCountry={setSelectedCountryId}
         onChangeRegion={setSelectedRegion}
+      />
+
+      <Text style={[styles.header, styles.areaHeader, { color: colors.textPrimary }]}>Where do you live now?</Text>
+      <Text style={[styles.subheader, { color: colors.textSecondary }]}>
+        We'll suggest products, brands and prices from shops in this country.
+      </Text>
+      <CountryPicker
+        countryId={residenceId}
+        onChangeCountry={setResidenceId}
+        groups={RESIDENCE_GROUPS}
+        placeholder="Choose the country you live in"
+        label="Living in"
       />
     </View>
   );

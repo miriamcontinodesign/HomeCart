@@ -20,6 +20,7 @@ export interface Profile {
   home_lat?: number;
   home_lng?: number;
   home_city?: string;
+  residence_country?: string;   // where they live and shop now (lib/residence.ts); unset = US
   onboarding_completed?: boolean;
   created_at?: string;
   updated_at?: string;

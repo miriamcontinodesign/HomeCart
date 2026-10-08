@@ -7,6 +7,7 @@ import os
 import re
 import time
 import json
+import asyncio
 import httpx
 from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, timedelta, timezone
@@ -50,6 +51,16 @@ class UserProfile(BaseModel):
     home_cuisines: list[str] = []
     cooking_confidence: int = 3  # no longer collected; kept so older clients still validate
     dietary_preferences: list[str] = []
+    living_country: Optional[str] = None  # country the user shops in now, e.g. "Germany"; None = US
+
+
+def _living_in(profile: UserProfile) -> tuple[str, bool]:
+    """(how prompts name the country the user shops in, whether it's the US).
+    Older clients don't send living_country; they were all built for the US."""
+    name = (profile.living_country or "").strip()
+    if not name or name.lower() in {"usa", "us", "united states", "united states of america", "the united states"}:
+        return "the United States", True
+    return name[:60], False
 
 
 class ScanRequest(BaseModel):
@@ -328,10 +339,12 @@ async def scan_product(
 ):
     cuisines_str = ", ".join(req.user_profile.home_cuisines) if req.user_profile.home_cuisines else "Unknown"
     dietary_str = ", ".join(req.user_profile.dietary_preferences) if req.user_profile.dietary_preferences else "none"
+    living, _ = _living_in(req.user_profile)
 
-    prompt = f"""You are HomeCart, a culturally-aware grocery assistant for immigrants.
+    prompt = f"""You are HomeCart, a culturally-aware grocery assistant for people living abroad.
 
 USER CONTEXT:
+- Lives in and shops in: {living}
 - Home country: {req.user_profile.home_country or 'Unknown'}
 - Home region: {req.user_profile.home_region or 'Unknown'}
 - Home cuisines: {cuisines_str}
@@ -352,8 +365,8 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "brand_origin": "<country the brand comes from, e.g. 'Mexico', 'USA', 'Italy' — or null if unknown>",
   "detected_category": "<rice|flour|cheese|spice|sauce|etc>",
   "description": "<1-2 sentences: what this product is and how it is typically used>",
-  "budget": "<estimated US price tier for this product: 'budget', 'mid-range' or 'premium'>",
-  "price_hint": "<rough typical US shelf price and size, e.g. '$3-5 for 4.4 lb' — an estimate, or null>",
+  "budget": "<estimated price tier for this product in {living}: 'budget', 'mid-range' or 'premium'>",
+  "price_hint": "<rough typical shelf price and size in {living}, in the local currency and units, e.g. '$3-5 for 4.4 lb' in the US or '€2-3 for 500 g' in Germany — an estimate, or null>",
   "home_matches": [
     {{
       "name": "<SHORT name of a similar product from the user's home country, MAX 6 words>",
@@ -367,7 +380,7 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "ai_tip": "<one practical tip>",
   "can_make_at_home": <true/false>,
   "home_recipe_summary": "<one sentence on how to make it, or null>",
-  "availability_breadth": "<one of: 'mainstream' (common in any US supermarket, e.g. cauliflower, chicken, butter), 'specialty_only' (only in ethnic specialty stores, e.g. Alphonso mango, fresh paneer, banchan, curry leaves, masa harina), 'both' (mainstream carries a passable version but specialty has the real thing, e.g. basmati rice, soy sauce, olive oil)>",
+  "availability_breadth": "<one of: 'mainstream' (common in any supermarket in {living}, e.g. cauliflower, chicken, butter), 'specialty_only' (only in ethnic specialty stores, e.g. Alphonso mango, fresh paneer, banchan, curry leaves, masa harina), 'both' (mainstream carries a passable version but specialty has the real thing, e.g. basmati rice, soy sauce, olive oil)>",
   "preferred_store_types": <array of store-type tokens that carry this product. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery". Always include 1-4 tokens.>
 }}
 
@@ -483,18 +496,93 @@ def _coerce_us_equivalents(result: dict) -> None:
     result["us_equivalents"] = items[:3]
 
 
+# --- Product photos for search results (Open Food Facts, free and keyless) ---
+# The search-a-licious API isn't CORS-enabled, so the backend looks photos up and returns the
+# image URL with each local version. A wrong photo is worse than none: a hit must mention
+# the brand (or, without a brand, the product name) to be used. Results are cached per process.
+_OFF_SEARCH_URL = "https://search.openfoodfacts.org/search"
+_OFF_HEADERS = {"User-Agent": "HomeCart/1.0 (portfolio project; https://homecart-frontend-five.vercel.app)"}
+_product_image_cache = {}  # "brand|name" -> image URL or None
+# Words too generic to tell two products of the same brand apart.
+_GENERIC_WORDS = {"cheese", "sauce", "oil", "cream", "fresh", "organic", "original", "style",
+                  "classic", "natural", "whole", "the", "and", "with", "brand", "paste", "mix"}
+
+
+def _norm(text: Optional[str]) -> str:
+    return re.sub(r"[^a-z0-9 ]", " ", (text or "").lower())
+
+
+async def _product_image(client: httpx.AsyncClient, name: str, brand: Optional[str]) -> Optional[dict]:
+    """{"url", "exact"} for the best photo, or None. exact=False means an unbranded photo of the
+    same kind of product (shown as "Similar product"); photos of a different brand are never used."""
+    name = re.sub(r"\(.*?\)", " ", name).strip()          # drop "(blended with heavy cream)"-style notes
+    key = f"{brand or ''}|{name}".lower()
+    if key in _product_image_cache:
+        return _product_image_cache[key]
+    brand_words = _norm(brand).split()
+    name_words = [w for w in _norm(name).split() if len(w) >= 3]
+    specific = [w for w in name_words if w not in _GENERIC_WORDS] or name_words
+    exact = similar = None
+    try:
+        for q in ([f"{brand} {name}", name] if brand else [name]):
+            r = await client.get(_OFF_SEARCH_URL, params={
+                "q": q, "page_size": 10, "fields": "product_name,brands,image_front_small_url,image_front_url",
+            })
+            r.raise_for_status()
+            for hit in r.json().get("hits", []):
+                img = hit.get("image_front_small_url") or hit.get("image_front_url")
+                if not img or not img.startswith("https://images.openfoodfacts.org/"):
+                    continue
+                brands = hit.get("brands") or []
+                hit_brand = _norm(" ".join(brands) if isinstance(brands, list) else str(brands)).strip()
+                text = _norm(hit.get("product_name")) + " " + hit_brand
+                if specific and not any(w in text for w in specific):
+                    continue
+                if brand_words and all(w in text for w in brand_words):
+                    exact = img
+                    break
+                # Unbranded (or "brand" that is just the product name) -> usable as a similar photo.
+                if similar is None and (not hit_brand or set(hit_brand.split()) <= set(name_words)):
+                    similar = img
+                if not brand_words:
+                    exact, similar = img, None
+                    break
+            if exact:
+                break
+    except (httpx.HTTPError, ValueError) as e:
+        print(f"[product-image] lookup failed for {key!r}: {e}")
+        return None  # don't cache failures; the service may just be busy
+    found = {"url": exact, "exact": True} if exact else ({"url": similar, "exact": False} if similar else None)
+    _product_image_cache[key] = found
+    return found
+
+
+async def _attach_product_images(equivalents: list) -> None:
+    if not equivalents:
+        return
+    async with httpx.AsyncClient(timeout=4.0, headers=_OFF_HEADERS) as client:
+        images = await asyncio.gather(*[
+            _product_image(client, e.get("name") or "", e.get("brand")) for e in equivalents
+        ])
+    for e, found in zip(equivalents, images):
+        e["image_url"] = found["url"] if found else None
+        e["image_exact"] = bool(found and found["exact"])
+
+
 @app.post("/product-search")
 async def product_search(
     req: ProductSearchRequest,
     user_id: Optional[str] = Depends(get_user_id),
     byok: BYOK = Depends(get_byok),
 ):
-    """Type a product from any country (e.g. "mascarpone") -> its American versions."""
+    """Type a product from any country (e.g. "mascarpone") -> its versions in the country the user lives in."""
     query = req.query.strip()[:120]
     if not query:
         raise HTTPException(400, "Type a product name to search.")
     dietary_str = ", ".join(req.user_profile.dietary_preferences) if req.user_profile.dietary_preferences else "none"
-    curated = _curated_equivalent(query)
+    living, in_us = _living_in(req.user_profile)
+    # The curated equivalences table lists US products, so it only helps people living in the US.
+    curated = _curated_equivalent(query) if in_us else None
     curated_hint = (
         f"""
 TRUSTED REFERENCE (hand-curated; use it as the first US equivalent unless it clearly doesn't match the product):
@@ -506,7 +594,8 @@ TRUSTED REFERENCE (hand-curated; use it as the first US equivalent unless it cle
         if curated else ""
     )
 
-    prompt = f"""You are HomeCart, a grocery assistant helping people find familiar foods in American grocery stores.
+    prompt = f"""You are HomeCart, a grocery assistant helping people living abroad find familiar foods in local grocery stores.
+The user lives in and shops in: {living}
 
 The user searched for a food product that may come from ANY country: "{query}"
 User's dietary restrictions: {dietary_str}
@@ -514,8 +603,8 @@ User's dietary restrictions: {dietary_str}
 TASK:
 1. Identify the product and the country/cuisine it comes from.
 2. Describe what it is and how it is typically used.
-3. Give 1-3 American versions: products sold in US grocery stores that are the closest substitute (a US-made or widely sold US brand version of it, or the closest everyday alternative). For each give a brand if there is a common one, a match score (0-100, where 100 = identical), the aisle where it's usually found, and a short tip on using it in place of the original.
-4. Say where the ORIGINAL product itself can be bought in the US.
+3. Give 1-3 local versions: products sold in grocery stores in {living} that are the closest substitute (a locally made or widely sold local brand version of it, or the closest everyday alternative). For each give a brand if there is a common one in {living}, a match score (0-100, where 100 = identical), the aisle where it's usually found, and a short tip on using it in place of the original.
+4. Say where the ORIGINAL product itself can be bought in {living}.
 
 Output ONLY valid JSON (no preamble, no markdown fences):
 {{
@@ -524,19 +613,19 @@ Output ONLY valid JSON (no preamble, no markdown fences):
   "description": "<1-2 sentences: what it is and how it's typically used>",
   "us_equivalents": [
     {{
-      "name": "<American version, MAX 6 words>",
-      "brand": "<common US brand, or null>",
+      "name": "<local version, MAX 6 words, in English>",
+      "brand": "<common brand in {living}, or null>",
       "match_score": <0-100>,
-      "aisle": "<where in a typical US grocery store>",
+      "aisle": "<where in a typical grocery store in {living}>",
       "difference": "<one short sentence: how it differs from the original>",
       "tip": "<one sentence on using it in place of the original>",
-      "budget": "<estimated US price tier: 'budget', 'mid-range' or 'premium'>",
-      "price_hint": "<rough typical US shelf price and size, e.g. '$4-6 for 8 oz' — an estimate, or null>"
+      "budget": "<estimated price tier in {living}: 'budget', 'mid-range' or 'premium'>",
+      "price_hint": "<rough typical shelf price and size in {living}, in the local currency and units, e.g. '$4-6 for 8 oz' or '€2-3 for 250 g' — an estimate, or null>"
     }}
   ],
   "ai_tip": "<one practical tip>",
-  "availability_breadth": "<where the ORIGINAL product is sold in the US: 'mainstream', 'specialty_only' or 'both'>",
-  "preferred_store_types": <array of 1-4 store-type tokens that carry the original or its American versions. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery">
+  "availability_breadth": "<where the ORIGINAL product is sold in {living}: 'mainstream', 'specialty_only' or 'both'>",
+  "preferred_store_types": <array of 1-4 store-type tokens that carry the original or its local versions. Pick from: "supermarket", "warehouse_club", "indian_grocery", "south_asian_specialty", "chinese_grocery", "korean_grocery", "japanese_grocery", "vietnamese_grocery", "thai_grocery", "filipino_grocery", "mexican_grocery", "italian_specialty", "middle_eastern_grocery", "halal_grocery", "caribbean_grocery", "african_grocery", "european_grocery", "latin_grocery", "southeast_asian_grocery">
 }}
 
 us_equivalents must have 1-3 items, best first.
@@ -554,6 +643,7 @@ If "{query}" is not a food product, return us_equivalents: [] and explain in des
         result = parse_json_from_response(response_text)
         _coerce_store_types(result)
         _coerce_us_equivalents(result)
+        await _attach_product_images(result["us_equivalents"])
         result["query"] = query
         result["curated"] = bool(curated)
 
@@ -563,6 +653,7 @@ If "{query}" is not a food product, return us_equivalents: [] and explain in des
             try:
                 inserted = supabase.table("scans").insert({
                     "source": "search",
+                    "image_url": best.get("image_url") if best else None,
                     "budget": best.get("budget") if best else None,
                     "user_id": user_id,
                     "detected_product": result.get("product_name") or query,
@@ -593,10 +684,12 @@ async def import_recipe(
 ):
     cuisines_str = ", ".join(req.user_profile.home_cuisines) if req.user_profile.home_cuisines else "Unknown"
     dietary_str = ", ".join(req.user_profile.dietary_preferences) if req.user_profile.dietary_preferences else "none"
+    living, _ = _living_in(req.user_profile)
 
-    prompt = f"""You are HomeCart, helping an immigrant shop for their home cuisine in American grocery stores.
+    prompt = f"""You are HomeCart, helping someone living abroad shop for their home cuisine in local grocery stores.
 
 USER:
+- Lives in and shops in: {living}
 - Home cuisines: {cuisines_str}
 - Dietary: {dietary_str}
 
@@ -604,9 +697,9 @@ DISH: {req.dish_name}
 
 TASK:
 1. List the 8-15 essential ingredients for this dish.
-2. For each, give the closest US grocery store equivalent (specific brand if possible).
+2. For each, give the closest equivalent sold in grocery stores in {living} (specific local brand if possible).
 3. Match score 0-100 (100 = identical to home version).
-4. Aisle hint (where in a typical American grocery store).
+4. Aisle hint (where in a typical grocery store in {living}).
 5. One AI tip (substitute hint, brand to look for, what to avoid).
 6. Can they make it at home from simpler ingredients?
 
@@ -616,7 +709,7 @@ Output ONLY valid JSON (no preamble, no markdown):
   "ingredients": [
     {{
       "original_ingredient": "<home name>",
-      "us_equivalent_product": "<SHORT US product name, MAX 6 words, no parentheticals, no examples list — e.g. 'Sun Noodles fresh ramen' or 'Gekkeikan dry sake' or 'whole milk ricotta'. This text shows in a single-line UI banner.>",
+      "us_equivalent_product": "<SHORT name of the product to buy in {living}, in English, MAX 6 words, no parentheticals, no examples list — e.g. 'Sun Noodles fresh ramen' or 'Gekkeikan dry sake' or 'whole milk ricotta'. This text shows in a single-line UI banner.>",
       "us_brand": "<specific brand or null>",
       "match_score": <0-100>,
       "aisle_location": "<aisle hint>",
@@ -1078,7 +1171,7 @@ async def geocode_place(id: str, user_id: Optional[str] = Depends(get_user_id)):
             r = await client.get(
                 f"https://places.googleapis.com/v1/places/{id}",
                 headers={"X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-                         "X-Goog-FieldMask": "displayName,formattedAddress,location"},
+                         "X-Goog-FieldMask": "displayName,formattedAddress,location,addressComponents"},
             )
             r.raise_for_status()
             p = r.json()
@@ -1087,11 +1180,13 @@ async def geocode_place(id: str, user_id: Optional[str] = Depends(get_user_id)):
     loc = p.get("location") or {}
     if "latitude" not in loc:
         raise HTTPException(404, "That place has no location.")
+    country = next((c for c in p.get("addressComponents") or [] if "country" in (c.get("types") or [])), None)
     return {
         "label": (p.get("displayName") or {}).get("text") or p.get("formattedAddress"),
         "address": p.get("formattedAddress"),
         "lat": loc["latitude"],
         "lon": loc["longitude"],
+        "country_code": (country or {}).get("shortText"),   # ISO 3166-1 alpha-2, e.g. "DE"
     }
 
 

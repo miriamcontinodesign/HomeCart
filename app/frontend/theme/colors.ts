@@ -85,6 +85,7 @@ const light = {
   frameShadow: 'rgba(43, 27, 20, 0.35)', // the phone frame's drop shadow on tablet/desktop
   mapUserDot: lime[500],
   mapUserDotRing: neutral[0],
+  photoMat: neutral[0],             // white mat behind product photos (packshots are shot on white)
 };
 
 export type ThemeColors = { [K in keyof typeof light]: string };
@@ -126,6 +127,7 @@ const dark: ThemeColors = {
   frameShadow: 'rgba(0, 0, 0, 0.7)',
   mapUserDot: lime[500],
   mapUserDotRing: neutral[0],
+  photoMat: neutral[0],
 };
 
 // A colour "tone" bundles the ways a palette colour can appear while still meeting the rules

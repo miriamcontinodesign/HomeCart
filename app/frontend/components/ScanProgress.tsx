@@ -55,7 +55,7 @@ export default function ScanProgress({
 
   const stage = done ? 'Done!'
     : variant === 'search'
-      ? (progress < 0.35 ? 'Looking up the product…' : progress < 0.75 ? 'Finding American versions…' : 'Almost there…')
+      ? (progress < 0.35 ? 'Looking up the product…' : progress < 0.75 ? 'Finding local versions…' : 'Almost there…')
       : (progress < 0.12 ? 'Uploading photo…'
         : progress < 0.45 ? 'Reading the label…'
         : progress < 0.75 ? `Finding matches from ${homeCountry || 'home'}…`

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { residenceInText } from '../lib/residence';
 import { useTheme } from '../theme/ThemeContext';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
@@ -148,14 +149,14 @@ export default function HomeScreen({ navigation }: any) {
             <MaterialCommunityIcons name="scan-helper" size={30} color={colors.onActionPrimary} />
             <Text style={[styles.entryTitle, { color: colors.onActionPrimary }]}>Scan</Text>
             <Text style={[styles.entrySub, { color: colors.onActionPrimary }]}>
-              Photo of a US product → {cuisineLabel}
+              Photo of a product in {residenceInText(profile?.residence_country)} → {cuisineLabel}
             </Text>
           </TouchableOpacity>
 
           <View style={[styles.entryCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, borderWidth: 1 }]}>
             <MaterialCommunityIcons name="magnify" size={30} color={colors.accentIcon} />
             <Text style={[styles.entryTitle, { color: colors.textPrimary }]}>Search</Text>
-            <Text style={[styles.entrySub, { color: colors.textSecondary }]}>A product from home → its US version</Text>
+            <Text style={[styles.entrySub, { color: colors.textSecondary }]}>A product from home → its version in {residenceInText(profile?.residence_country)}</Text>
             <View style={styles.searchRow}>
               <TextInput
                 style={[styles.searchInput, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault, color: colors.textPrimary }]}
@@ -171,7 +172,7 @@ export default function HomeScreen({ navigation }: any) {
                 onPress={() => search(query)}
                 disabled={!query.trim()}
                 style={[styles.searchGo, { backgroundColor: colors.actionPrimary, opacity: query.trim() ? 1 : 0.5 }]}
-                accessibilityLabel="Find the US version"
+                accessibilityLabel="Find the local version"
               >
                 <MaterialCommunityIcons name="arrow-right" size={18} color={colors.onActionPrimary} />
               </TouchableOpacity>
@@ -326,8 +327,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, marginTop: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 18, fontWeight: '700' },
-  entryRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
-  entryCard: { flex: 1, borderRadius: 18, padding: 16, gap: 4 },
+  entryRow: { gap: 12, marginTop: 4 },   // Scan above Search, each full width
+  entryCard: { borderRadius: 18, padding: 16, gap: 4 },
   entryTitle: { fontSize: 18, fontWeight: '800', marginTop: 6 },
   entrySub: { fontSize: 12, lineHeight: 16 },
   searchRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
