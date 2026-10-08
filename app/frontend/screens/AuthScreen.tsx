@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
 import ServerWakeBanner from '../components/ServerWakeBanner';
+import BrandLogo from '../components/BrandLogo';
 import Captcha, { CaptchaHandle } from '../components/Captcha';
 import { PERSONAS, Persona, startDemo } from '../lib/demo';
 import { useTheme } from '../theme/ThemeContext';
@@ -117,12 +118,9 @@ export default function AuthScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.brandWrap}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.actionPrimary }]}>
-              <MaterialCommunityIcons name="map-marker-radius" size={36} color={colors.onActionPrimary} />
-            </View>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>HomeCart</Text>
+            <BrandLogo variant="stacked" height={120} style={styles.logo} />
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Your AI grocery companion for navigating American shelves with home in mind.
+              Your AI grocery companion for shopping abroad with home in mind.
             </Text>
           </View>
 
@@ -284,8 +282,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   brandWrap: { alignItems: 'center', marginBottom: 36 },
-  logoCircle: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', marginBottom: 8 },
+  logo: { marginBottom: 12 },
   subtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
   form: { width: '100%' },
   inputContainer: { marginBottom: 18 },

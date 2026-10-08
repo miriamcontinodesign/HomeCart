@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 import { useTheme } from '../theme/ThemeContext';
 import CountryPicker from '../components/CountryPicker';
 import { homeCuisinesFor } from '../lib/countries';
@@ -151,6 +152,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]}>
+      <BrandLogo variant="mark" height={36} style={styles.mark} />
       <View style={[styles.progressBar, { backgroundColor: colors.bgSurface }]}>
         <View style={[styles.progressFill, { width: `${(step / TOTAL_STEPS) * 100}%`, backgroundColor: colors.actionPrimary }]} />
       </View>
@@ -197,6 +199,7 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  mark: { alignSelf: 'center', marginTop: 8, marginBottom: 4 },
   container: { flex: 1 },
   progressBar: { height: 3, width: '100%' },
   progressFill: { height: '100%' },

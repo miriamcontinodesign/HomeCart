@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="1024" height="1024">
+  <title>HomeCart app icon (cream)</title>
+  <rect width="120" height="120" fill="#F6ECDC"/>
+  <path d="M44 46 L62 32 L80 46" fill="none" stroke="#5E9A12" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 48 L29 48 L35 58" fill="none" stroke="#2B1B14" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M37 56 L89 56 Q93 56 92 60 L86 82 Q85 87 80 87 L46 87 Q41 87 40 82 L34 60 Q33 56 37 56 Z" fill="#E8641F"/>
+  <ellipse cx="45" cy="67" rx="3.5" ry="7" fill="#F39A5E" transform="rotate(-15 45 67)"/>
+  <circle cx="50" cy="97" r="5.5" fill="#2B1B14"/>
+  <circle cx="76" cy="97" r="5.5" fill="#2B1B14"/>
+</svg>

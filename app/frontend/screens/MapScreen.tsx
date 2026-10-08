@@ -11,8 +11,8 @@ import AreaSearch from '../components/AreaSearch';
 import { Alert } from '../lib/alert';
 import { Area, FALLBACK_AREA, getDeviceLocation, loadTempArea, saveTempArea, profileArea } from '../lib/area';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { themes } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
-import { matchTone, tones, tokens } from '../theme/colors';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
 
@@ -91,7 +91,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export default function MapScreen(props: MapScreenProps) {
-  const { colors } = useTheme();
+  const { colors, tones, matchTone } = useTheme();
   if (!MAPS_BROWSER_KEY) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bgApp, padding: 32 }]}>
@@ -111,7 +111,7 @@ export default function MapScreen(props: MapScreenProps) {
 }
 
 function MapScreenInner({ route, navigation }: MapScreenProps) {
-  const { colors } = useTheme();
+  const { colors, tones, matchTone, mode } = useTheme();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const params = route?.params;
@@ -375,7 +375,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           defaultCenter={{ lat: mapRegion.latitude, lng: mapRegion.longitude }}
           defaultZoom={USER_ZOOM}
           mapId={MAP_ID}
-          colorScheme={ColorScheme.LIGHT}
+          colorScheme={mode === 'dark' ? ColorScheme.DARK : ColorScheme.LIGHT}
           onIdle={onMapIdle}
           disableDefaultUI
           gestureHandling="greedy"
@@ -457,7 +457,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       )}
 
       <Modal visible={areaSheetOpen} animationType="slide" transparent onRequestClose={() => setAreaSheetOpen(false)}>
-        <View style={[styles.modalBackdrop, { backgroundColor: tokens.scrim }]}>
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
           <View style={[styles.areaSheet, { backgroundColor: colors.bgApp }]}>
             <View style={styles.areaSheetHeader}>
               <Text style={[styles.areaSheetTitle, { color: colors.textPrimary }]}>Search stores near…</Text>
@@ -613,7 +613,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
 
       {/* Full store list sheet */}
       <Modal visible={showStoreList} animationType="slide" transparent onRequestClose={() => setShowStoreList(false)}>
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { backgroundColor: colors.scrim }]}>
           <View style={[styles.listSheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <View style={styles.listSheetHeader}>
               <View>
@@ -726,6 +726,9 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
   );
 }
 
+// Static styles can't follow the theme; a near-black shadow reads the same in both modes.
+const SHADOW = themes.light.colors.shadow;
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -767,7 +770,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
     zIndex: 8,
-    shadowColor: tokens.shadow,
+    shadowColor: SHADOW,
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -784,7 +787,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: tokens.shadow,
+    shadowColor: SHADOW,
     shadowOpacity: 0.25,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -858,7 +861,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 24,
     borderWidth: 1,
-    shadowColor: tokens.shadow,
+    shadowColor: SHADOW,
     shadowOpacity: 0.15,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -866,7 +869,6 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: tokens.scrim,
     justifyContent: 'flex-end',
   },
   listSheet: {

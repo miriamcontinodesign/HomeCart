@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { matchTone, tones } from '../theme/colors';
 import { apiFetchJson } from '../lib/api';
 import { Alert } from '../lib/alert';
 import ErrorCard from '../components/ErrorCard';
@@ -355,6 +354,7 @@ function ProductSearchResultView({
 }: {
   result: ProductSearchResult; saved: boolean; onReset: () => void; onFindStores: () => void; colors: any;
 }) {
+  const { tones, matchTone } = useTheme();
   const valueIdx = bestValueIndex(result.us_equivalents);
   return (
     <SafeAreaView style={[styles.resultContainer, { backgroundColor: colors.bgApp }]} edges={['top']}>
@@ -440,6 +440,7 @@ function ScanResultView({
 }: {
   result: ScanResult; saved: boolean; image: string | null; homeCountry: string; onReset: () => void; onFindStores?: () => void; colors: any;
 }) {
+  const { tones, matchTone } = useTheme();
   const overall = matchTone(result.match_score);
   const matches = result.home_matches || [];
 

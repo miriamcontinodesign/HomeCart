@@ -1,6 +1,6 @@
 # HomeCart
 
-> Your AI grocery companion for navigating American shelves with home in mind.
+> Your AI grocery companion for shopping abroad with home in mind.
 
 HomeCart helps immigrants and travelers translate familiar food products into their US grocery-store equivalents, find specialty stores that carry the *real* thing, and plan recipe shopping trips with confidence. Snap a label, get the cultural translation. Type a dish from back home, get a fully ranked shopping list. Tap **Find stores** — see where the items live, ranked by who covers the most.
 
@@ -18,7 +18,7 @@ Started as a hackathon project (the team won 🥇) as an Android app, and since 
 - **🗺️ Cultural Map** — Google Maps with cuisine filters and product-aware ranking. Specialty-only products (Alphonso mango, fresh paneer) surface ethnic stores; mainstream products (cauliflower, chicken) show the closest mainstream + specialty mix. The recipe-coverage view ranks stores by how many of your ingredients they carry.
 - **🆓 Runs on free AI models** — each request walks a chain of free OpenRouter models and falls back to the next one if a model is busy, returns nothing, or returns malformed JSON. When everything is busy, the app says so with a friendly retry card instead of failing silently.
 - **🔑 BYOK (Bring Your Own Key)** — plug in your own OpenRouter / OpenAI / Anthropic key for unlimited LLM use. The provider is auto-detected from the key prefix (`sk-or-` → OpenRouter, `sk-ant-` → Anthropic, `sk-` → OpenAI). Keys are stored only in your browser and forwarded as headers on the calls that need them — never persisted on the server.
-- **🌑 Dark mode by default**, theme-aware throughout.
+- **🌗 Light and dark mode** from one set of design tokens — light by default; switch to Dark or System in Profile → Appearance.
 
 ---
 

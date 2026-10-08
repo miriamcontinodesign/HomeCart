@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { tones, Tone } from '../theme/colors';
+import { Tones } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 export type Budget = 'budget' | 'mid-range' | 'premium';
 
@@ -29,7 +30,8 @@ export function bestValueIndex(items: { budget?: string | null; match_score: num
   return ranked[0].i;
 }
 
-function Tag({ label, tone, solid }: { label: string; tone: Tone; solid?: boolean }) {
+function Tag({ label, toneName, solid }: { label: string; toneName: keyof Tones; solid?: boolean }) {
+  const tone = useTheme().tones[toneName];
   return (
     <View style={[styles.tag, { backgroundColor: solid ? tone.fill : tone.bg }]}>
       <Text style={[styles.tagText, { color: solid ? tone.onFill : tone.text }]}>{label}</Text>
@@ -40,15 +42,15 @@ function Tag({ label, tone, solid }: { label: string; tone: Tone; solid?: boolea
 // Price tier is an AI estimate, so it's shown as a neutral chip rather than a claim.
 export function BudgetTag({ budget }: { budget?: string | null }) {
   if (!isBudget(budget)) return null;
-  return <Tag label={BUDGET_LABEL[budget]} tone={tones.neutral} />;
+  return <Tag label={BUDGET_LABEL[budget]} toneName="neutral" />;
 }
 
 export function BestMatchTag() {
-  return <Tag label="Best match" tone={tones.match} solid />;
+  return <Tag label="Best match" toneName="match" solid />;
 }
 
 export function BestValueTag() {
-  return <Tag label="Best value" tone={tones.highlight} solid />;
+  return <Tag label="Best value" toneName="highlight" solid />;
 }
 
 const styles = StyleSheet.create({

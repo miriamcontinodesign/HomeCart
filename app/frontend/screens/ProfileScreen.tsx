@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../theme/ThemeContext';
+import { useTheme, ThemePreference } from '../theme/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import CountryPicker from '../components/CountryPicker';
 import { countryFlag, countryName, homeCuisinesFor } from '../lib/countries';
@@ -15,7 +15,7 @@ import { Area } from '../lib/area';
 
 export default function ProfileScreen() {
   const { user, profile, signOut, refreshProfile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, preference, setPreference } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -84,6 +84,28 @@ export default function ProfileScreen() {
           value={profile?.preferred_language || 'English'}
           colors={colors}
         />
+        <View style={[styles.settingsRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, marginBottom: 10, flexWrap: 'wrap' }]}>
+          <View style={[styles.infoIconWrap, { backgroundColor: colors.accentSubtle }]}>
+            <MaterialCommunityIcons name="theme-light-dark" size={18} color={colors.accentIcon} />
+          </View>
+          <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0, flex: 1 }]}>Appearance</Text>
+          <View style={[styles.segment, { backgroundColor: colors.bgMuted }]} accessibilityRole="radiogroup">
+            {APPEARANCE_OPTIONS.map(o => {
+              const selected = preference === o.value;
+              return (
+                <TouchableOpacity
+                  key={o.value}
+                  onPress={() => setPreference(o.value)}
+                  style={[styles.segmentItem, selected && { backgroundColor: colors.actionPrimary }]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.segmentText, { color: selected ? colors.onActionPrimary : colors.textPrimary }]}>{o.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
         <TouchableOpacity
           onPress={() => setSettingsOpen(true)}
           style={[styles.settingsRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
@@ -185,6 +207,12 @@ function InfoRow({
 
 // Supabase lets any signed-in session set a new password, so confirm the current one
 // first: a forgotten, still-signed-in browser shouldn't be enough to take over the account.
+const APPEARANCE_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
 const MIN_PASSWORD_LENGTH = 8;
 
 function ChangePasswordSheet({
@@ -441,6 +469,9 @@ function ChangeCountrySheet({
 }
 
 const styles = StyleSheet.create({
+  segment: { flexDirection: 'row', borderRadius: 10, padding: 3, gap: 2 },
+  segmentItem: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  segmentText: { fontSize: 13, fontWeight: '600' },
   demoBanner: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
   demoBannerTitle: { fontSize: 15, fontWeight: '800' },
   demoBannerText: { fontSize: 13, lineHeight: 18, marginTop: 4 },

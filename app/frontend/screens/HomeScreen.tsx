@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { matchTone, tones } from '../theme/colors';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
+import BrandLogo from '../components/BrandLogo';
 import ServerWakeBanner from '../components/ServerWakeBanner';
 
 
@@ -32,7 +31,7 @@ const EXAMPLE_PRODUCTS = ['mascarpone', 'gochujang', 'queso fresco', 'paneer'];
 
 export default function HomeScreen({ navigation }: any) {
   const { user, profile, signOut } = useAuth();
-  const { colors } = useTheme();
+  const { colors, tones, matchTone } = useTheme();
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [recentLists, setRecentLists] = useState<RecentList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,17 +119,19 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bgApp }]} edges={['top']}>
-      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Greeting */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {firstName} <Text style={{ fontSize: 22 }}>{flag}</Text></Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Mapping {cuisineLabel} to your local stores</Text>
-          </View>
-          <TouchableOpacity onPress={() => navigation?.navigate('Profile')} style={[styles.avatar, { backgroundColor: colors.actionPrimary }]}>
+        {/* App bar: logo + profile shortcut */}
+        <View style={styles.appBar}>
+          <BrandLogo height={34} />
+          <TouchableOpacity onPress={() => navigation?.navigate('Profile')} style={[styles.avatar, { backgroundColor: colors.actionPrimary }]} accessibilityLabel="Open profile">
             <Text style={[styles.avatarText, { color: colors.onActionPrimary }]}>{firstName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Greeting */}
+        <View style={styles.header}>
+          <Text style={[styles.greeting, { color: colors.textPrimary }]}>Hi, {firstName} <Text style={{ fontSize: 22 }}>{flag}</Text></Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Mapping {cuisineLabel} to your local stores</Text>
         </View>
 
         <ServerWakeBanner />
@@ -319,7 +320,8 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  appBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  header: { marginBottom: 24 },
   greeting: { fontSize: 26, fontWeight: '700' },
   subtitle: { fontSize: 14, marginTop: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },

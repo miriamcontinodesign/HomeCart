@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { matchTone, tones } from '../theme/colors';
 import { apiFetchJson } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
@@ -49,7 +48,7 @@ function formatDate(iso: string): string {
 
 export default function ListScreen({ navigation, route }: { navigation?: any; route?: any }) {
   const { user, profile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, tones, matchTone } = useTheme();
   const [section, setSection] = useState<'import' | 'saved'>('import');
 
   // Import section

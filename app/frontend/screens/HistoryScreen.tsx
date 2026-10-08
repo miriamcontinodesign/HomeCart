@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { matchTone } from '../theme/colors';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
 import SaveButton from '../components/SaveButton';
@@ -42,7 +41,7 @@ const GROUP_ORDER = ['Today', 'Yesterday', 'This week', 'Earlier'];
 
 export default function HistoryScreen({ navigation }: { navigation?: any }) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, tones, matchTone } = useTheme();
   const [filter, setFilter] = useState<'all' | 'saved'>('all');
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);

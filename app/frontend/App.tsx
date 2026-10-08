@@ -9,8 +9,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
+import BrandLogo from './components/BrandLogo';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
-import { tokens } from './theme/colors';
 import { loadByokKeys, clearLegacyByokKeys } from './lib/byok';
 import AuthScreen from './screens/AuthScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
@@ -25,19 +25,23 @@ import MagicLensScreen from './screens/MagicLensScreen';
 
 const BYOK_ONLY = process.env.EXPO_PUBLIC_BYOK_ONLY === 'true';
 
-// Navigation theme wired to the design tokens
-const navTheme = {
-  ...NavDefaultTheme,
-  colors: {
-    ...NavDefaultTheme.colors,
-    background: tokens.bgApp,
-    card: tokens.bgSurface,
-    text: tokens.textPrimary,
-    border: tokens.borderDefault,
-    primary: tokens.accentIcon,
-    notification: tokens.highlightFill,
-  },
-};
+// Navigation theme wired to the design tokens of the active mode
+function useNavTheme() {
+  const { colors, mode } = useTheme();
+  return React.useMemo(() => ({
+    ...NavDefaultTheme,
+    dark: mode === 'dark',
+    colors: {
+      ...NavDefaultTheme.colors,
+      background: colors.bgApp,
+      card: colors.bgSurface,
+      text: colors.textPrimary,
+      border: colors.borderDefault,
+      primary: colors.accentIcon,
+      notification: colors.highlightFill,
+    },
+  }), [colors, mode]);
+}
 
 const Tab = createBottomTabNavigator();
 
@@ -135,6 +139,7 @@ function MainTabNavigator() {
 function AppContent() {
   const { user, profile, loading, recovering } = useAuth();
   const { colors } = useTheme();
+  const navTheme = useNavTheme();
   // Tracks whether the BYOK-only build has a usable LLM key. `null` until first check.
   const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(BYOK_ONLY ? null : true);
 
@@ -162,6 +167,7 @@ function AppContent() {
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.bgApp }]}>
+        <BrandLogo variant="mark" height={72} style={{ marginBottom: 16 }} />
         <ActivityIndicator size="large" color={colors.accentIcon} />
       </View>
     );
@@ -217,13 +223,18 @@ function AppFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ThemedStatusBar() {
+  const { mode } = useTheme();
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
         <ThemeProvider>
           <ServerStatusProvider>
-          <StatusBar style="dark" />
+          <ThemedStatusBar />
           <AppFrame>
             <AppContent />
           </AppFrame>
