@@ -147,8 +147,17 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
   // doesn't count as the user panning away and pop up "Search this area".
   const programmaticMove = useRef(false);
 
+  // A fit requested before the map instance exists (fast or cached results) waits here and
+  // runs once the map is ready, instead of being dropped.
+  const pendingFit = useRef<{ points: { lat: number; lon: number }[]; padding: Padding } | null>(null);
+
   const fitTo = (points: { lat: number; lon: number }[], padding: Padding) => {
-    if (!mapRef.current || points.length === 0) return;
+    if (points.length === 0) return;
+    if (!mapRef.current) {
+      pendingFit.current = { points, padding };
+      return;
+    }
+    pendingFit.current = null;
     programmaticMove.current = true;
     // If the bounds already fit, no idle event fires — don't swallow the user's next pan.
     setTimeout(() => { programmaticMove.current = false; }, 1500);
@@ -156,6 +165,18 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
     points.forEach(p => bounds.extend({ lat: p.lat, lng: p.lon }));
     mapRef.current.fitBounds(bounds, padding);
   };
+
+  useEffect(() => {
+    if (!map) return;
+    // Wait for the first idle (map laid out and sized) — fitting a 0x0 map leaves it blank.
+    const listener = google.maps.event.addListenerOnce(map, 'idle', () => {
+      if (pendingFit.current) {
+        const { points, padding } = pendingFit.current;
+        fitTo(points, padding);
+      }
+    });
+    return () => listener.remove();
+  }, [map]);
 
   const panTo = (lat: number, lon: number, zoom: number) => {
     if (!mapRef.current) return;
