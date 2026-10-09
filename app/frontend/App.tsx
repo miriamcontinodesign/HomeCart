@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServerStatusProvider } from './context/ServerStatusContext';
 import { NavigationContainer } from '@react-navigation/native';
 import { DefaultTheme as NavDefaultTheme } from '@react-navigation/native';
@@ -49,13 +49,16 @@ const Tab = createBottomTabNavigator();
 
 function MainTabNavigator() {
   const { colors } = useTheme();
+  // Room for a 24px icon + one label line; the bottom inset (phone home indicator) is added on
+  // top, so the labels are never squeezed.
+  const bottomInset = useSafeAreaInsets().bottom;
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          height: 90,
-          paddingBottom: 30,
-          paddingTop: 10,
+          height: 72 + bottomInset,
+          paddingBottom: 8 + bottomInset,
+          paddingTop: 6,
           borderTopWidth: 1,
           borderTopColor: colors.borderDefault,
           elevation: 0,

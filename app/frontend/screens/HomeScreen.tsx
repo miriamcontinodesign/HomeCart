@@ -147,16 +147,20 @@ export default function HomeScreen({ navigation }: any) {
             accessibilityRole="button"
             accessibilityLabel="Scan a product with Magic Lens"
           >
-            <MaterialCommunityIcons name="scan-helper" size={30} color={colors.onActionPrimary} />
-            <Text style={[styles.entryTitle, { color: colors.onActionPrimary }]}>Scan</Text>
+            <View style={styles.entryHead}>
+              <MaterialCommunityIcons name="scan-helper" size={24} color={colors.onActionPrimary} />
+              <Text style={[styles.entryTitle, { color: colors.onActionPrimary }]}>Scan</Text>
+            </View>
             <Text style={[styles.entrySub, { color: colors.onActionPrimary }]}>
               Photo of a product in {residenceInText(profile?.residence_country)} → {cuisineLabel}
             </Text>
           </TouchableOpacity>
 
           <View style={[styles.entryCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, borderWidth: 1 }]}>
-            <MaterialCommunityIcons name="magnify" size={30} color={colors.accentIcon} />
-            <Text style={[styles.entryTitle, { color: colors.textPrimary }]}>Search</Text>
+            <View style={styles.entryHead}>
+              <MaterialCommunityIcons name="magnify" size={24} color={colors.accentIcon} />
+              <Text style={[styles.entryTitle, { color: colors.textPrimary }]}>Search</Text>
+            </View>
             <Text style={[styles.entrySub, { color: colors.textSecondary }]}>A product from home → its version in {residenceInText(profile?.residence_country)}</Text>
             <View style={styles.searchRow}>
               <TextInput
@@ -330,7 +334,8 @@ const styles = StyleSheet.create({
   avatarText: { ...typo.heading },
   entryRow: { gap: 12, marginTop: 4 },   // Scan above Search, each full width
   entryCard: { borderRadius: 18, padding: 16, gap: 4 },
-  entryTitle: { ...typo.heading, marginTop: 6 },
+  entryHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  entryTitle: { ...typo.heading },
   entrySub: { ...typo.caption },
   searchRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
   searchInput: { ...typo.body, flex: 1, minWidth: 0, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
