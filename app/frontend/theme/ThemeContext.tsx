@@ -50,7 +50,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const root = document.documentElement;
       if (preference === 'system') root.removeAttribute('data-theme');
       else root.setAttribute('data-theme', preference);
-      root.style.colorScheme = mode;
+      // "only light" stops Android browsers from force-darkening the light theme.
+      root.style.colorScheme = mode === 'light' ? 'only light' : 'dark';
+      document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', mode === 'light' ? 'only light' : 'dark');
       document.body.style.backgroundColor = themes[mode].colors.bgApp;
     } catch {}
   }, [preference, mode]);

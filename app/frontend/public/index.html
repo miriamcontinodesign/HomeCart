@@ -15,6 +15,9 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Browser chrome uses the light theme's bg/app token (light is the default mode) -->
     <meta name="theme-color" content="#F6ECDC" />
+    <!-- Opt out of browser-forced dark mode (Chrome/Samsung Internet "auto dark" on Android):
+         HomeCart is light unless the visitor picks Dark in Profile → Appearance. -->
+    <meta name="color-scheme" content="only light" />
 
     <!-- Fonts (theme/typography.ts): Fraunces 600 for headings (SOFT 100, optical size follows
          the size), DM Sans 400/500 for body and UI, Noto Sans as the fallback for other scripts. -->
