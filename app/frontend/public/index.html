@@ -16,6 +16,17 @@
     <!-- Browser chrome uses the light theme's bg/app token (light is the default mode) -->
     <meta name="theme-color" content="#F6ECDC" />
 
+    <!-- Fonts (theme/typography.ts): Fraunces 600 for headings (SOFT 100, optical size follows
+         the size), DM Sans 400/500 for body and UI, Noto Sans as the fallback for other scripts. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,600,100&family=DM+Sans:wght@400;500&family=Noto+Sans:wght@400;500&display=swap" />
+    <style id="homecart-type">
+      /* Base font for any text without a typography token, and for form controls. */
+      html, body, input, textarea, button, select { font-family: 'DM Sans', 'Noto Sans', system-ui, sans-serif; }
+      /* Fraunces: optical size follows the font size; SOFT is fixed at 100 by the font request. */
+      * { font-optical-sizing: auto; }
+    </style>
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */

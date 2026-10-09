@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { FramedModal } from '../components/PhoneFrame';
+import { typo } from '../theme/typography';
 import { useTheme, ThemePreference } from '../theme/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 import CountryPicker from '../components/CountryPicker';
@@ -52,7 +53,7 @@ export default function ProfileScreen() {
         )}
 
         {/* Profile info section */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>YOUR PROFILE</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Your profile</Text>
 
         <InfoRow
           icon="earth"
@@ -74,7 +75,7 @@ export default function ProfileScreen() {
         />
         <InfoRow
           icon="map-marker-outline"
-          label="Your Area"
+          label="Your area"
           value={profile?.home_city || 'Not set — tap to add'}
           onPress={() => setAreaOpen(true)}
           accessibilityLabel="Change your area"
@@ -82,16 +83,16 @@ export default function ProfileScreen() {
         />
         <InfoRow
           icon="leaf"
-          label="Dietary Restrictions"
+          label="Dietary restrictions"
           value={profile?.dietary_preferences?.length ? profile.dietary_preferences.join(', ') : 'None'}
           colors={colors}
         />
 
         {/* Settings (API keys / BYOK) */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 28 }]}>SETTINGS</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 28 }]}>Settings</Text>
         <InfoRow
           icon="translate"
-          label="Preferred Language"
+          label="Preferred language"
           value={profile?.preferred_language || 'English'}
           colors={colors}
         />
@@ -125,8 +126,8 @@ export default function ProfileScreen() {
             <MaterialCommunityIcons name="key-variant" size={18} color={colors.accentIcon} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>API Keys (BYOK)</Text>
-            <Text style={[styles.infoLabel, { color: colors.textSecondary, fontWeight: '400', letterSpacing: 0 }]}>
+            <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>API keys (BYOK)</Text>
+            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
               Use your own AI key for unlimited scans and recipes
             </Text>
           </View>
@@ -144,7 +145,7 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.infoValue, { color: colors.textPrimary, marginTop: 0 }]}>Change password</Text>
-              <Text style={[styles.infoLabel, { color: colors.textSecondary, fontWeight: '400', letterSpacing: 0 }]}>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>
                 Update the password you sign in with
               </Text>
             </View>
@@ -158,7 +159,7 @@ export default function ProfileScreen() {
           style={[styles.signOutButton, { backgroundColor: colors.errorBg, borderColor: colors.borderDefault }]}
         >
           <MaterialCommunityIcons name="logout" size={20} color={colors.errorText} />
-          <Text style={[styles.signOutText, { color: colors.errorText }]}>{isDemo ? 'End demo' : 'Sign Out'}</Text>
+          <Text style={[styles.signOutText, { color: colors.errorText }]}>{isDemo ? 'End demo' : 'Sign out'}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 32 }} />
@@ -307,7 +308,7 @@ function ChangePasswordSheet({
         {done ? (
           <View style={styles.doneWrap}>
             <MaterialCommunityIcons name="check-circle" size={48} color={colors.matchFill} />
-            <Text style={[styles.sheetTitle, { color: colors.textPrimary, marginTop: 12, fontSize: 18 }]}>Password updated</Text>
+            <Text style={[styles.sheetTitle, { ...typo.heading, color: colors.textPrimary, marginTop: 12 }]}>Password updated</Text>
             <Text style={[styles.sheetSub, { color: colors.textSecondary, textAlign: 'center' }]}>
               Use your new password the next time you sign in.
             </Text>
@@ -400,7 +401,7 @@ function AreaSheet({
           {!!error && <Text style={[styles.sheetError, { color: colors.errorText, marginTop: 12 }]}>{error}</Text>}
           {!!current && !saving && (
             <TouchableOpacity onPress={() => save(null)} style={{ marginTop: 20, alignSelf: 'flex-start' }}>
-              <Text style={{ color: colors.textAccent, fontWeight: '700' }}>Remove my area</Text>
+              <Text style={{ ...typo.label, color: colors.textAccent }}>Remove my area</Text>
             </TouchableOpacity>
           )}
         </ScrollView>
@@ -509,27 +510,27 @@ function ChangeCountrySheet({
 const styles = StyleSheet.create({
   segment: { flexDirection: 'row', borderRadius: 10, padding: 3, gap: 2 },
   segmentItem: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  segmentText: { fontSize: 13, fontWeight: '600' },
+  segmentText: { ...typo.label },
   demoBanner: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
-  demoBannerTitle: { fontSize: 15, fontWeight: '800' },
-  demoBannerText: { fontSize: 13, lineHeight: 18, marginTop: 4 },
+  demoBannerTitle: { ...typo.heading },
+  demoBannerText: { ...typo.body, marginTop: 4 },
   sheet: { flex: 1, padding: 20, width: '100%', maxWidth: 640, alignSelf: 'center' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sheetTitle: { fontSize: 22, fontWeight: '700' },
-  sheetSub: { fontSize: 14, marginTop: 6, marginBottom: 18, lineHeight: 20 },
-  sheetError: { fontSize: 13, marginBottom: 10, textAlign: 'center' },
+  sheetTitle: { ...typo.title },
+  sheetSub: { ...typo.body, marginTop: 6, marginBottom: 18 },
+  sheetError: { ...typo.caption, marginBottom: 10, textAlign: 'center' },
   saveButton: { padding: 15, borderRadius: 14, alignItems: 'center' },
-  saveText: { fontWeight: '700', fontSize: 15 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  saveText: { ...typo.label },
+  fieldLabel: { ...typo.label, marginBottom: 6 },
   doneWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   container: { flex: 1 },
   content: { padding: 20 },
   headerSection: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
   avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 32, fontWeight: '700' },
-  name: { fontSize: 22, fontWeight: '700' },
-  email: { fontSize: 13, marginTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  avatarText: { ...typo.display },
+  name: { ...typo.title },
+  email: { ...typo.caption, marginTop: 4 },
+  sectionLabel: { ...typo.caption, marginBottom: 10 },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -540,8 +541,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  infoLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
-  infoValue: { fontSize: 14, fontWeight: '500', marginTop: 2 },
+  infoLabel: { ...typo.caption },
+  infoValue: { ...typo.bodyStrong, marginTop: 2 },
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -560,5 +561,5 @@ const styles = StyleSheet.create({
     marginTop: 24,
     gap: 8,
   },
-  signOutText: { fontSize: 15, fontWeight: '700' },
+  signOutText: { ...typo.label },
 });

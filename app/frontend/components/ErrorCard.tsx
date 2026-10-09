@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import type { FriendlyError } from '../lib/errors';
 
@@ -46,14 +47,14 @@ export default function ErrorCard({
 const styles = StyleSheet.create({
   card: { borderRadius: 16, borderWidth: 1, padding: 20, alignItems: 'center' },
   iconWrap: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 17, fontWeight: '700', marginTop: 12, textAlign: 'center' },
-  message: { fontSize: 14, lineHeight: 20, marginTop: 6, textAlign: 'center', maxWidth: 380 },
+  title: { ...typo.heading, marginTop: 12, textAlign: 'center' },
+  message: { ...typo.body, marginTop: 6, textAlign: 'center', maxWidth: 380 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   primary: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
   },
-  primaryText: { fontWeight: '700', fontSize: 14 },
+  primaryText: { ...typo.label },
   secondary: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  secondaryText: { fontWeight: '600', fontSize: 14 },
+  secondaryText: { ...typo.label },
 });

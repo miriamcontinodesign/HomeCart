@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import PasswordInput from '../components/PasswordInput';
 import { useAuth } from '../context/AuthContext';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 // Shown after the user opens a password-reset email link (Supabase PASSWORD_RECOVERY).
@@ -85,10 +86,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   body: { flex: 1, justifyContent: 'center', padding: 24, width: '100%', maxWidth: 420, alignSelf: 'center' },
   iconWrap: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', alignSelf: 'center' },
-  title: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginTop: 16 },
-  sub: { fontSize: 14, textAlign: 'center', marginTop: 6 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
-  error: { fontSize: 13, marginTop: 12, textAlign: 'center' },
+  title: { ...typo.display, textAlign: 'center', marginTop: 16 },
+  sub: { ...typo.body, textAlign: 'center', marginTop: 6 },
+  label: { ...typo.label, marginBottom: 6 },
+  error: { ...typo.caption, marginTop: 12, textAlign: 'center' },
   button: { height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonText: { ...typo.label },
 });

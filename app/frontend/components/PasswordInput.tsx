@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, TextInputProps } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 // Password field with a show/hide toggle. Used on sign-in, sign-up, reset and change password
@@ -45,6 +46,6 @@ export default function PasswordInput({
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', height: 52, borderRadius: 14, borderWidth: 1, paddingLeft: 16 },
-  input: { flex: 1, minWidth: 0, height: '100%', fontSize: 15 },
+  input: { ...typo.body, flex: 1, minWidth: 0, height: '100%' },
   toggle: { paddingHorizontal: 14, height: '100%', justifyContent: 'center' },
 });

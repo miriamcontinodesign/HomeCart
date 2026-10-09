@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
@@ -69,5 +70,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
   },
-  pillText: { fontSize: 13, fontWeight: '700' },
+  pillText: { ...typo.label },
 });

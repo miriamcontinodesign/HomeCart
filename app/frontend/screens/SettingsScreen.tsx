@@ -6,6 +6,7 @@ import { Alert } from '../lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FramedModal } from '../components/PhoneFrame';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import {
   ByokKeys, loadByokKeys, saveByokKeys, clearAllByokKeys,
@@ -198,9 +199,9 @@ export default function SettingsScreen({ visible, onClose }: Props) {
                 description={`Only ${providerDisplayName(detectedProvider)} models are shown — these are the only ones that will work with your key.`}
                 colors={colors}>
                 <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                  VISION MODEL (product scans)
+                  Vision model (product scans)
                   {orFetching && detectedProvider === 'openrouter' && (
-                    <Text style={{ color: colors.textSecondary, fontSize: 10 }}>  · fetching live list…</Text>
+                    <Text style={{ ...typo.pill, color: colors.textSecondary }}>  · fetching live list…</Text>
                   )}
                 </Text>
                 <ModelButton
@@ -211,7 +212,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
                 />
 
                 <Text style={[styles.fieldLabel, { color: colors.textSecondary, marginTop: 14 }]}>
-                  TEXT MODEL (recipe parsing)
+                  Text model (recipe parsing)
                 </Text>
                 <ModelButton
                   model={allModels.find(m => m.id === keys.llmTextModel) || null}
@@ -224,7 +225,7 @@ export default function SettingsScreen({ visible, onClose }: Props) {
 
             {keys.llmKey ? (
               <TouchableOpacity onPress={onClearAll} style={styles.clearLink}>
-                <Text style={{ color: colors.errorText, fontSize: 13, fontWeight: '600' }}>Clear key</Text>
+                <Text style={{ ...typo.label, color: colors.errorText }}>Clear key</Text>
               </TouchableOpacity>
             ) : null}
           </ScrollView>
@@ -388,34 +389,34 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-start', padding: 20, paddingBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700' },
-  subtitle: { fontSize: 13, marginTop: 4, lineHeight: 18 },
+  title: { ...typo.title },
+  subtitle: { ...typo.body, marginTop: 4 },
   closeBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   content: { padding: 20, paddingTop: 0, paddingBottom: 24 },
   section: { padding: 16, borderRadius: 14, borderWidth: 1, marginTop: 14 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 15, fontWeight: '700' },
-  sectionDesc: { fontSize: 12, lineHeight: 17, marginTop: 6, marginBottom: 12 },
+  sectionTitle: { ...typo.heading },
+  sectionDesc: { ...typo.caption, marginTop: 6, marginBottom: 12 },
   inputRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1 },
-  input: { flex: 1, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, fontFamily: 'monospace' },
+  input: { ...typo.body, flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
   revealBtn: { padding: 12 },
-  fieldLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginTop: 14, marginBottom: 6 },
-  fieldHint: { fontSize: 11, marginTop: 8 },
+  fieldLabel: { ...typo.caption, marginTop: 14, marginBottom: 6 },
+  fieldHint: { ...typo.caption, marginTop: 8 },
   modelButton: {
     flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10, borderWidth: 1, gap: 8,
   },
-  modelButtonLabel: { fontSize: 14, fontWeight: '600' },
-  modelButtonPrice: { fontSize: 11, marginTop: 2 },
+  modelButtonLabel: { ...typo.label },
+  modelButtonPrice: { ...typo.caption, marginTop: 2 },
   modelRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, gap: 12 },
-  modelRowLabel: { fontSize: 15, fontWeight: '600' },
-  modelRowId: { fontSize: 11, fontFamily: 'monospace', marginTop: 2 },
-  modelRowPrice: { fontSize: 12, marginTop: 4, fontWeight: '500' },
-  modelRowNotes: { fontSize: 11, marginTop: 4, lineHeight: 15, fontStyle: 'italic' },
+  modelRowLabel: { ...typo.bodyStrong },
+  modelRowId: { ...typo.caption, marginTop: 2 },
+  modelRowPrice: { ...typo.caption, marginTop: 4 },
+  modelRowNotes: { ...typo.caption, marginTop: 4 },
   linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14 },
-  linkText: { fontSize: 12, fontWeight: '600' },
+  linkText: { ...typo.label },
   clearLink: { padding: 16, alignItems: 'center', marginTop: 12 },
   footer: { padding: 20, paddingBottom: 28, borderTopWidth: 1 },
   saveBtn: { padding: 16, borderRadius: 14, alignItems: 'center' },
-  saveText: { fontSize: 16, fontWeight: '700' },
+  saveText: { ...typo.label },
 });

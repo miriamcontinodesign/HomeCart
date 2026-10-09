@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BrandLogo from './components/BrandLogo';
+import { typo } from './theme/typography';
 import { AppFrame } from './components/PhoneFrame';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { loadByokKeys, clearLegacyByokKeys } from './lib/byok';
@@ -62,6 +63,7 @@ function MainTabNavigator() {
         },
         tabBarActiveTintColor: colors.accentIcon,   // active nav: accent/icon (sits on the white tab bar)
         tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: typo.label,
         headerShown: false,
       }}
     >

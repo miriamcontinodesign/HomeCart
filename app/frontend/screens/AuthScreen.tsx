@@ -9,6 +9,7 @@ import ServerWakeBanner from '../components/ServerWakeBanner';
 import BrandLogo from '../components/BrandLogo';
 import Captcha, { CaptchaHandle } from '../components/Captcha';
 import { PERSONAS, Persona, startDemo } from '../lib/demo';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -107,7 +108,7 @@ export default function AuthScreen() {
       }
     } catch (err: any) {
       console.error('[Auth] Email auth error:', err);
-      Alert.alert('Authentication Error', err.message || 'An unexpected error occurred');
+      Alert.alert('Sign-in problem', err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,7 @@ export default function AuthScreen() {
 
             {isSignUp && (
               <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Full name</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                   placeholder="Jane Doe"
@@ -143,7 +144,7 @@ export default function AuthScreen() {
             )}
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email address</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault, color: colors.textPrimary }]}
                 placeholder="name@example.com"
@@ -195,13 +196,13 @@ export default function AuthScreen() {
               activeOpacity={0.85}
             >
               {loading ? <ActivityIndicator color={colors.onActionPrimary} /> : (
-                <Text style={[styles.buttonText, { color: colors.onActionPrimary }]}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
+                <Text style={[styles.buttonText, { color: colors.onActionPrimary }]}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.toggleButton} onPress={() => { setIsSignUp(!isSignUp); setConfirmPassword(''); setResetMessage(null); }}>
               <Text style={[styles.toggleText, { color: colors.textAccent }]}>
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Text>
             </TouchableOpacity>
 
@@ -267,31 +268,31 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 24, marginBottom: 16 },
   orLine: { flex: 1, height: 1 },
-  orText: { fontSize: 12, fontWeight: '600' },
+  orText: { ...typo.caption },
   demoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 14, borderWidth: 1 },
-  demoButtonText: { fontSize: 15, fontWeight: '700' },
-  demoTitle: { fontSize: 17, fontWeight: '800' },
-  demoSub: { fontSize: 13, lineHeight: 18, marginTop: 4, marginBottom: 12 },
+  demoButtonText: { ...typo.label },
+  demoTitle: { ...typo.heading },
+  demoSub: { ...typo.body, marginTop: 4, marginBottom: 12 },
   personaCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
   personaFlag: { fontSize: 28 },
-  personaName: { fontSize: 16, fontWeight: '700' },
-  personaBlurb: { fontSize: 13, marginTop: 2 },
+  personaName: { ...typo.heading },
+  personaBlurb: { ...typo.caption, marginTop: 2 },
   forgotLink: { alignSelf: 'flex-end', marginTop: 10, paddingVertical: 4 },
-  forgotText: { fontSize: 13, fontWeight: '600' },
-  resetMessage: { fontSize: 13, lineHeight: 18, marginTop: 8 },
+  forgotText: { ...typo.label },
+  resetMessage: { ...typo.caption, marginTop: 8 },
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   brandWrap: { alignItems: 'center', marginBottom: 36 },
   logo: { marginBottom: 12 },
-  subtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
+  subtitle: { ...typo.body, textAlign: 'center', paddingHorizontal: 16 },
   form: { width: '100%' },
   inputContainer: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  input: { height: 52, borderRadius: 14, paddingHorizontal: 16, fontSize: 15, borderWidth: 1 },
+  label: { ...typo.label, marginBottom: 8 },
+  input: { ...typo.body, height: 52, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1 },
   button: { height: 54, borderRadius: 14, justifyContent: 'center', alignItems: 'center', width: '100%', marginTop: 6 },
-  buttonText: { fontSize: 16, fontWeight: '700', },
+  buttonText: { ...typo.label },
   toggleButton: { marginTop: 20, alignItems: 'center' },
-  toggleText: { fontSize: 14, fontWeight: '600' },
-  footerText: { marginTop: 32, fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  toggleText: { ...typo.label },
+  footerText: { ...typo.caption, marginTop: 32, textAlign: 'center' },
   link: { fontWeight: '500' },
 });

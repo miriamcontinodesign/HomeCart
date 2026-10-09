@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { Area, AreaSuggestion, searchAreas, resolveArea, getDeviceLocation } from '../lib/area';
 
@@ -125,11 +126,11 @@ export default function AreaSearch({
 
 const styles = StyleSheet.create({
   gpsButton: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
-  gpsText: { fontSize: 15, fontWeight: '600' },
+  gpsText: { ...typo.bodyStrong },
   inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12 },
-  input: { flex: 1, minWidth: 0, paddingVertical: 12, fontSize: 15 },
+  input: { ...typo.body, flex: 1, minWidth: 0, paddingVertical: 12 },
   result: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1 },
-  resultLabel: { fontSize: 15, fontWeight: '600' },
-  resultAddress: { fontSize: 12, marginTop: 2 },
-  message: { fontSize: 13, marginTop: 10 },
+  resultLabel: { ...typo.bodyStrong },
+  resultAddress: { ...typo.caption, marginTop: 2 },
+  message: { ...typo.caption, marginTop: 10 },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 // Progress bar for a Magic Lens scan. The backend gives no progress events, so the bar is
@@ -86,8 +87,8 @@ export default function ScanProgress({
 
 const styles = StyleSheet.create({
   wrap: { width: '100%', maxWidth: 320, alignItems: 'center', marginTop: 24 },
-  stage: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  stage: { ...typo.heading, textAlign: 'center' },
   track: { width: '100%', height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 14 },
   fill: { height: '100%', borderRadius: 4 },
-  hint: { fontSize: 13, marginTop: 10, textAlign: 'center' },
+  hint: { ...typo.caption, marginTop: 10, textAlign: 'center' },
 });

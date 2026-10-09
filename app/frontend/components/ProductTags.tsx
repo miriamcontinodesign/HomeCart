@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Tones } from '../theme/colors';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 export type Budget = 'budget' | 'mid-range' | 'premium';
@@ -55,5 +56,5 @@ export function BestValueTag() {
 
 const styles = StyleSheet.create({
   tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '700' },
+  tagText: { ...typo.pill },
 });

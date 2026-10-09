@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { Alert } from '../lib/alert';
@@ -143,7 +144,7 @@ export default function HistoryScreen({ navigation }: { navigation?: any }) {
         ) : (
           groups.map(group => (
             <View key={group.name} style={{ marginTop: 20 }}>
-              <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.name.toUpperCase()}</Text>
+              <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.name}</Text>
               {group.rows.map(item => {
                 const meta = SOURCE_META[item.source] || SOURCE_META.scan;
                 const tone = item.match_score != null ? matchTone(item.match_score) : null;
@@ -207,23 +208,23 @@ export default function HistoryScreen({ navigation }: { navigation?: any }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20 },
-  title: { fontSize: 28, fontWeight: '700', marginTop: 4 },
+  title: { ...typo.display, marginTop: 4 },
   segment: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, marginTop: 16 },
   segmentItem: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 10, borderRadius: 9 },
-  segmentText: { fontSize: 14, fontWeight: '700' },
-  groupLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  segmentText: { ...typo.label },
+  groupLabel: { ...typo.caption, marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
   thumb: { width: 56, height: 56, borderRadius: 10 },
   thumbEmpty: { justifyContent: 'center', alignItems: 'center' },
-  rowTitle: { fontSize: 15, fontWeight: '700' },
-  rowSub: { fontSize: 13, marginTop: 2 },
+  rowTitle: { ...typo.heading },
+  rowSub: { ...typo.caption, marginTop: 2 },
   rowMeta: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   sourceTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
-  sourceText: { fontSize: 11, fontWeight: '600' },
+  sourceText: { ...typo.pill },
   matchTag: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
-  matchText: { fontSize: 11, fontWeight: '700' },
+  matchText: { ...typo.pill },
   emptyCard: { alignItems: 'center', padding: 28, borderRadius: 16, borderWidth: 1, marginTop: 24, gap: 6 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', marginTop: 6 },
-  emptyText: { fontSize: 13, textAlign: 'center' },
-  link: { fontSize: 14, fontWeight: '700', marginTop: 6 },
+  emptyTitle: { ...typo.heading, marginTop: 6 },
+  emptyText: { ...typo.body, textAlign: 'center' },
+  link: { ...typo.label, marginTop: 6 },
 });

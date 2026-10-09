@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Text, Linking, StyleSheet } from 'react-native';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 
 // Invisible hCaptcha for Supabase Auth's CAPTCHA protection. When it's switched on in Supabase
@@ -60,5 +61,5 @@ const Captcha = forwardRef<CaptchaHandle>(function Captcha(_props, ref) {
 export default Captcha;
 
 const styles = StyleSheet.create({
-  notice: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 16 },
+  notice: { ...typo.caption, textAlign: 'center', marginTop: 16 },
 });

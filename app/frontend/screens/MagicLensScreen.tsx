@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { residenceName, residenceInText } from '../lib/residence';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { apiFetchJson } from '../lib/api';
 import { Alert } from '../lib/alert';
@@ -382,7 +383,7 @@ function ProductSearchResultView({
         {/* One card per local version, with a product photo */}
         {result.us_equivalents.length > 0 ? (
           <>
-            <Text style={[styles.cardsHeading, { color: colors.textSecondary }]}>VERSIONS IN {residenceInText(profile?.residence_country).toUpperCase()}</Text>
+            <Text style={[styles.cardsHeading, { color: colors.textSecondary }]}>Versions in {residenceInText(profile?.residence_country)}</Text>
             {result.us_equivalents.map((e, i) => (
               <View key={`${e.name}-${i}`} style={[styles.equivCard, { backgroundColor: colors.bgSurface, borderColor: i === 0 ? colors.matchBorder : colors.borderDefault }]}>
                 <View style={styles.equivTop}>
@@ -438,7 +439,7 @@ function ProductSearchResultView({
 
         {!!result.ai_tip && (
           <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border, marginTop: 0 }]}>
-            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
+            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI tip</Text>
             <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
           </View>
         )}
@@ -446,7 +447,7 @@ function ProductSearchResultView({
         {result.us_equivalents.length > 0 && (
           <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]} onPress={onFindStores}>
             <MaterialCommunityIcons name="store-marker" size={18} color={colors.onActionPrimary} />
-            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a Store</Text>
+            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a store</Text>
           </TouchableOpacity>
         )}
 
@@ -497,7 +498,7 @@ function ScanResultView({
           {matches.length > 0 ? (
             <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
               <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-                SIMILAR FROM {(homeCountry || 'HOME').toUpperCase()}
+                Similar from {homeCountry || 'home'}
               </Text>
               {matches.map((m, i) => (
                 <View
@@ -521,23 +522,23 @@ function ScanResultView({
             <>
               <View style={[styles.scoreCircle, { backgroundColor: overall.fill }]}>
                 <Text style={[styles.scoreNumber, { color: overall.onFill }]}>{result.match_score}</Text>
-                <Text style={[styles.scoreLabel, { color: overall.onFill }]}>MATCH</Text>
+                <Text style={[styles.scoreLabel, { color: overall.onFill }]}>match</Text>
               </View>
               <View style={[styles.section, { backgroundColor: colors.bgApp, borderColor: colors.borderDefault }]}>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>FOR YOUR CUISINE</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>For your cuisine</Text>
                 <Text style={[styles.sectionText, { color: colors.textPrimary }]}>{result.cultural_equivalent}</Text>
               </View>
             </>
           )}
 
           <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
-            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI TIP</Text>
+            <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>💡 AI tip</Text>
             <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.ai_tip}</Text>
           </View>
 
           {result.can_make_at_home && !!result.home_recipe_summary && (
             <View style={[styles.section, { backgroundColor: colors.highlightBg, borderColor: tones.highlight.border }]}>
-              <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>🏠 MAKE IT AT HOME</Text>
+              <Text style={[styles.sectionLabel, { color: colors.highlightText }]}>🏠 Make it at home</Text>
               <Text style={[styles.sectionText, { color: colors.highlightText }]}>{result.home_recipe_summary}</Text>
             </View>
           )}
@@ -546,7 +547,7 @@ function ScanResultView({
         {onFindStores && (
           <TouchableOpacity style={[styles.findStoresButton, { backgroundColor: colors.actionPrimary }]} onPress={onFindStores}>
             <MaterialCommunityIcons name="store-marker" size={18} color={colors.onActionPrimary} />
-            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a Store</Text>
+            <Text style={[styles.findStoresText, { color: colors.onActionPrimary }]}>Find in a store</Text>
           </TouchableOpacity>
         )}
 
@@ -559,63 +560,63 @@ function ScanResultView({
 }
 
 const styles = StyleSheet.create({
-  cardsHeading: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, marginTop: 18, marginBottom: 8, marginLeft: 4 },
+  cardsHeading: { ...typo.heading, marginTop: 18, marginBottom: 8, marginLeft: 4 },
   equivCard: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 12 },
   equivTop: { flexDirection: 'row', gap: 12 },
   equivPhoto: { width: 84, height: 84, borderRadius: 12, borderWidth: 1 },
   equivPhotoEmpty: { alignItems: 'center', justifyContent: 'center' },
-  photoNote: { fontSize: 10, marginTop: 3, textAlign: 'center', width: 84 },
-  photoCredit: { fontSize: 11, textAlign: 'center', marginBottom: 6 },
+  photoNote: { ...typo.pill, marginTop: 3, textAlign: 'center', width: 84 },
+  photoCredit: { ...typo.caption, textAlign: 'center', marginBottom: 6 },
   pickContainer: { flex: 1 },
   pickBody: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   pickIcon: { width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center' },
   pickPreview: { width: 220, height: 220, borderRadius: 16 },
-  pickTitle: { fontSize: 22, fontWeight: '700', marginTop: 20 },
-  pickText: { fontSize: 15, textAlign: 'center', marginTop: 8, lineHeight: 22, maxWidth: 360 },
+  pickTitle: { ...typo.display, marginTop: 20 },
+  pickText: { ...typo.body, textAlign: 'center', marginTop: 8, maxWidth: 360 },
   pickButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 24,
   },
-  pickButtonText: { fontWeight: '700', fontSize: 15 },
-  pickHint: { fontSize: 12, marginTop: 14, textAlign: 'center' },
+  pickButtonText: { ...typo.label },
+  pickHint: { ...typo.caption, marginTop: 14, textAlign: 'center' },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, width: '100%', maxWidth: 380, marginTop: 32 },
   orLine: { flex: 1, height: 1 },
-  orText: { fontSize: 12, fontWeight: '600' },
+  orText: { ...typo.caption },
   searchRow: { flexDirection: 'row', gap: 10, width: '100%', maxWidth: 380, marginTop: 16 },
-  searchInput: { flex: 1, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15 },
+  searchInput: { ...typo.body, flex: 1, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 13 },
   searchButton: { width: 50, height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  searchingFor: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  equivMeta: { fontSize: 13, marginTop: 2 },
+  searchingFor: { ...typo.heading, marginBottom: 4 },
+  equivMeta: { ...typo.caption, marginTop: 2 },
   aisleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
 
   resultContainer: { flex: 1 },
   resultContent: { padding: 20, paddingBottom: 40 },
   resultImage: { width: '100%', height: 200, borderRadius: 16, marginBottom: 16 },
   resultCard: { borderRadius: 20, padding: 20, borderWidth: 1 },
-  productName: { fontSize: 22, fontWeight: '700' },
-  productBrand: { fontSize: 13, marginTop: 4 },
-  description: { fontSize: 14, lineHeight: 20, marginTop: 10, marginBottom: 6 },
+  productName: { ...typo.title },
+  productBrand: { ...typo.caption, marginTop: 4 },
+  description: { ...typo.body, marginTop: 10, marginBottom: 6 },
   matchRow: { paddingVertical: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 },
   matchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 },
-  matchName: { flex: 1, fontSize: 15, fontWeight: '700' },
+  matchName: { ...typo.title, flex: 1 },
   matchPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  matchPillText: { fontSize: 12, fontWeight: '700' },
+  matchPillText: { ...typo.pill },
   scoreCircle: {
     width: 96, height: 96, borderRadius: 48, alignSelf: 'center',
     justifyContent: 'center', alignItems: 'center', marginVertical: 20,
   },
-  scoreNumber: { fontSize: 32, fontWeight: '800' },
-  scoreLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  scoreNumber: { ...typo.display },
+  scoreLabel: { ...typo.pill },
   section: { padding: 14, borderRadius: 12, marginTop: 10, borderWidth: 1 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.5 },
-  sectionText: { fontSize: 14, lineHeight: 20 },
+  sectionLabel: { ...typo.label, marginBottom: 6 },
+  sectionText: { ...typo.body },
   findStoresButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: 16, borderRadius: 14, marginTop: 16,
   },
-  findStoresText: { fontWeight: '700', fontSize: 15 },
+  findStoresText: { ...typo.label },
   scanAgainButton: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 10, borderWidth: 1 },
-  scanAgainText: { fontWeight: '600', fontSize: 14 },
+  scanAgainText: { ...typo.label },
 });

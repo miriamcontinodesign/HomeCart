@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import BrandLogo from '../components/BrandLogo';
 import { RESIDENCE_GROUPS, guessResidence, residenceFromArea } from '../lib/residence';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import CountryPicker from '../components/CountryPicker';
 import { homeCuisinesFor } from '../lib/countries';
@@ -102,7 +103,7 @@ export default function OnboardingScreen() {
 
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={[styles.header, { color: colors.textPrimary }]}>Preferred Language</Text>
+      <Text style={[styles.header, { color: colors.textPrimary }]}>Preferred language</Text>
       <Text style={[styles.subheader, { color: colors.textSecondary }]}>Select the language you'd like AI responses in.</Text>
       <View style={styles.list}>
         {LANGUAGES.map(item => {
@@ -117,7 +118,7 @@ export default function OnboardingScreen() {
               ]}
               onPress={() => setLanguage(item)}
             >
-              <Text style={{ color: sel ? colors.textAccent : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 15 }}>{item}</Text>
+              <Text style={{ ...(sel ? typo.bodyStrong : typo.body), color: sel ? colors.textAccent : colors.textPrimary }}>{item}</Text>
             </TouchableOpacity>
           );
         })}
@@ -127,7 +128,7 @@ export default function OnboardingScreen() {
 
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <Text style={[styles.header, { color: colors.textPrimary }]}>Dietary Preferences</Text>
+      <Text style={[styles.header, { color: colors.textPrimary }]}>Dietary preferences</Text>
       <Text style={[styles.subheader, { color: colors.textSecondary }]}>Optional: tell us about your dietary needs so we suggest the right brands.</Text>
       <View style={styles.chipContainer}>
         {DIETARY.map(item => {
@@ -141,7 +142,7 @@ export default function OnboardingScreen() {
               ]}
               onPress={() => toggleDietary(item)}
             >
-              <Text style={{ color: sel ? colors.onActionPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 14 }}>{item}</Text>
+              <Text style={{ ...typo.label, color: sel ? colors.onActionPrimary : colors.textPrimary }}>{item}</Text>
             </TouchableOpacity>
           );
         })}
@@ -155,7 +156,7 @@ export default function OnboardingScreen() {
         <View style={[styles.areaPicked, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.areaPickedText, { color: colors.textPrimary }]} numberOfLines={1}>📍 {area.label}</Text>
           <TouchableOpacity onPress={() => setArea(null)} accessibilityRole="button">
-            <Text style={{ color: colors.textAccent, fontWeight: '700' }}>Change</Text>
+            <Text style={{ ...typo.label, color: colors.textAccent }}>Change</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -205,7 +206,7 @@ export default function OnboardingScreen() {
             <ActivityIndicator color={colors.onActionPrimary} />
           ) : (
             <Text style={[styles.nextButtonText, { color: canAdvance() ? colors.onActionPrimary : colors.textSecondary }]}>
-              {step === TOTAL_STEPS ? 'Get Started' : 'Next'}
+              {step === TOTAL_STEPS ? 'Get started' : 'Next'}
             </Text>
           )}
         </TouchableOpacity>
@@ -221,20 +222,20 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%' },
   scrollContent: { padding: 24, paddingBottom: 16 },
   stepContainer: { flex: 1 },
-  header: { fontSize: 26, fontWeight: '800', marginBottom: 8 },
-  subheader: { fontSize: 14, marginBottom: 28, lineHeight: 20 },
+  header: { ...typo.display, marginBottom: 8 },
+  subheader: { ...typo.body, marginBottom: 28 },
   list: { gap: 10 },
   listItem: { padding: 16, borderRadius: 14, borderWidth: 1 },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  areaHeader: { fontSize: 20, marginTop: 32 },
+  areaHeader: { ...typo.title, marginTop: 32 },
   areaPicked: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
-  areaPickedText: { flex: 1, fontSize: 15, fontWeight: '600' },
+  areaPickedText: { ...typo.bodyStrong, flex: 1 },
   chip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1 },
   errorBox: { marginHorizontal: 20, marginBottom: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
-  errorText: { fontSize: 13, lineHeight: 18 },
+  errorText: { ...typo.caption },
   footer: { padding: 20, flexDirection: 'row', gap: 10, borderTopWidth: 1 },
   backButton: { flex: 1, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
-  backButtonText: { fontSize: 15, fontWeight: '600' },
+  backButtonText: { ...typo.label },
   nextButton: { flex: 2, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  nextButtonText: { fontSize: 15, fontWeight: '700' },
+  nextButtonText: { ...typo.label },
 });

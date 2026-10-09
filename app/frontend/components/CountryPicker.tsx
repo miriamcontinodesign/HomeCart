@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { COUNTRY_GROUPS, CountryGroup } from '../lib/countries';
 
@@ -87,7 +88,7 @@ export default function CountryPicker({
             )}
             {groups.map(group => (
               <View key={group.name}>
-                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.name.toUpperCase()}</Text>
+                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>{group.name}</Text>
                 {group.countries.map(c => {
                   const sel = c.id === countryId;
                   return (
@@ -111,7 +112,7 @@ export default function CountryPicker({
       {/* Region chips */}
       {!open && selected && selected.regions.length > 0 && (
         <View style={styles.regionSection}>
-          <Text style={[styles.groupLabel, { color: colors.textSecondary, paddingHorizontal: 0 }]}>REGION (OPTIONAL)</Text>
+          <Text style={[styles.groupLabel, { color: colors.textSecondary, paddingHorizontal: 0 }]}>Region (optional)</Text>
           <View style={styles.regionList}>
             {selected.regions.map(r => {
               const sel = region === r;
@@ -124,7 +125,7 @@ export default function CountryPicker({
                   }]}
                   onPress={() => onChangeRegion(sel ? '' : r)}
                 >
-                  <Text style={{ color: sel ? colors.onActionPrimary : colors.textPrimary, fontWeight: sel ? '700' : '500', fontSize: 13 }}>{r}</Text>
+                  <Text style={{ ...typo.label, color: sel ? colors.onActionPrimary : colors.textPrimary }}>{r}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -141,19 +142,19 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
   },
   fieldFlag: { fontSize: 22 },
-  fieldText: { flex: 1, fontSize: 16, fontWeight: '600' },
+  fieldText: { ...typo.bodyStrong, flex: 1 },
   panel: { marginTop: 8, borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
   search: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, borderBottomWidth: 1,
   },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 15 },
+  searchInput: { ...typo.body, flex: 1, paddingVertical: 12 },
   list: { maxHeight: 340 },
-  groupLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6 },
+  groupLabel: { ...typo.caption, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
   rowFlag: { fontSize: 20 },
-  rowText: { flex: 1, fontSize: 15 },
-  empty: { padding: 20, textAlign: 'center', fontSize: 14 },
+  rowText: { ...typo.body, flex: 1 },
+  empty: { ...typo.caption, padding: 20, textAlign: 'center' },
   regionSection: { marginTop: 18 },
   regionList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   regionChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },

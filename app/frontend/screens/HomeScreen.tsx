@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { residenceInText } from '../lib/residence';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { countryFlag, countryName } from '../lib/countries';
 import { supabase } from '../lib/supabase';
@@ -114,8 +115,8 @@ export default function HomeScreen({ navigation }: any) {
     : 'your cuisine';
 
   const QUICK_ACTIONS = [
-    { id: 'recipe', label: 'New Recipe', icon: 'silverware-fork-knife' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('List') },
-    { id: 'stores', label: 'Find Stores', icon: 'store-marker' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('Map', {}) },
+    { id: 'recipe', label: 'New recipe', icon: 'silverware-fork-knife' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('List') },
+    { id: 'stores', label: 'Find stores', icon: 'store-marker' as const, color: colors.accentIcon, onPress: () => navigation?.navigate('Map', {}) },
   ];
 
   return (
@@ -222,10 +223,10 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent searches</Text>
               <View style={styles.headerActions}>
                 <TouchableOpacity onPress={clearAllScans} accessibilityRole="button" accessibilityLabel="Clear all scans">
-                  <Text style={{ color: colors.textSecondary, fontSize: 14, fontWeight: '600' }}>Clear all</Text>
+                  <Text style={{ ...typo.label, color: colors.textSecondary }}>Clear all</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation?.navigate('MagicLens')}>
-                  <Text style={{ color: colors.textAccent, fontSize: 14, fontWeight: '600' }}>+ New</Text>
+                  <Text style={{ ...typo.label, color: colors.textAccent }}>+ New</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -270,9 +271,9 @@ export default function HomeScreen({ navigation }: any) {
         {recentLists.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recipe Lists</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recipe lists</Text>
               <TouchableOpacity onPress={() => navigation?.navigate('List')}>
-                <Text style={{ color: colors.textAccent, fontSize: 14, fontWeight: '600' }}>+ New</Text>
+                <Text style={{ ...typo.label, color: colors.textAccent }}>+ New</Text>
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
@@ -295,7 +296,7 @@ export default function HomeScreen({ navigation }: any) {
           <View style={[styles.identityCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <Text style={[styles.identityFlag]}>{flag}</Text>
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={[styles.identityLabel, { color: colors.textSecondary }]}>YOUR CUISINE PROFILE</Text>
+              <Text style={[styles.identityLabel, { color: colors.textSecondary }]}>Your cuisine profile</Text>
               <Text style={[styles.identityValue, { color: colors.textPrimary }]} numberOfLines={1}>
                 {countryName(profile.home_country)}
                 {profile.home_region ? ` · ${profile.home_region}` : ''}
@@ -323,22 +324,22 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 40 },
   appBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
   header: { marginBottom: 24 },
-  greeting: { fontSize: 26, fontWeight: '700' },
-  subtitle: { fontSize: 14, marginTop: 4 },
+  greeting: { ...typo.display },
+  subtitle: { ...typo.body, marginTop: 4 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '700' },
+  avatarText: { ...typo.heading },
   entryRow: { gap: 12, marginTop: 4 },   // Scan above Search, each full width
   entryCard: { borderRadius: 18, padding: 16, gap: 4 },
-  entryTitle: { fontSize: 18, fontWeight: '800', marginTop: 6 },
-  entrySub: { fontSize: 12, lineHeight: 16 },
+  entryTitle: { ...typo.heading, marginTop: 6 },
+  entrySub: { ...typo.caption },
   searchRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
-  searchInput: { flex: 1, minWidth: 0, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14 },
+  searchInput: { ...typo.body, flex: 1, minWidth: 0, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
   searchGo: { width: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   exampleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 8 },
-  exampleLabel: { fontSize: 12, fontWeight: '600', marginRight: 2 },
+  exampleLabel: { ...typo.caption, marginRight: 2 },
   exampleChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1 },
-  exampleText: { fontSize: 12, fontWeight: '500' },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 14, marginTop: 6 },
+  exampleText: { ...typo.label },
+  sectionTitle: { ...typo.heading, marginBottom: 14, marginTop: 6 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 10 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   actionCard: {
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   iconWrap: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  actionLabel: { fontSize: 14, fontWeight: '600' },
+  actionLabel: { ...typo.label },
   scanCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -360,10 +361,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
   },
-  scanProduct: { fontSize: 15, fontWeight: '700' },
-  scanCultural: { fontSize: 12, marginTop: 4, lineHeight: 16 },
+  scanProduct: { ...typo.heading },
+  scanCultural: { ...typo.caption, marginTop: 4 },
   scoreBadge: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  scoreText: { fontSize: 14, fontWeight: '800' },
+  scoreText: { ...typo.pill },
   scanThumb: { width: 56, height: 56, borderRadius: 10, marginRight: 12 },
   scanThumbEmpty: { justifyContent: 'center', alignItems: 'center' },
   deleteButton: { marginLeft: 8, padding: 4 },
@@ -374,8 +375,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
   },
-  emptyText: { fontSize: 14, fontWeight: '600', marginTop: 10 },
-  emptyHint: { fontSize: 12, marginTop: 4, textAlign: 'center' },
+  emptyText: { ...typo.bodyStrong, marginTop: 10 },
+  emptyHint: { ...typo.caption, marginTop: 4, textAlign: 'center' },
   listCard: {
     width: 160,
     padding: 14,
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     justifyContent: 'space-between',
   },
-  listTitle: { fontSize: 14, fontWeight: '600', marginTop: 10 },
+  listTitle: { ...typo.bodyStrong, marginTop: 10 },
   identityCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -394,7 +395,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   identityFlag: { fontSize: 32 },
-  identityLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  identityValue: { fontSize: 15, fontWeight: '700', marginTop: 4 },
-  identityDiet: { fontSize: 12, marginTop: 2 },
+  identityLabel: { ...typo.caption },
+  identityValue: { ...typo.bodyStrong, marginTop: 4 },
+  identityDiet: { ...typo.caption, marginTop: 2 },
 });

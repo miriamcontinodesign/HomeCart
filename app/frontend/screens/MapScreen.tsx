@@ -13,6 +13,7 @@ import { Area, FALLBACK_AREA, getDeviceLocation, loadTempArea, saveTempArea, pro
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { themes } from '../theme/colors';
 import { FramedModal } from '../components/PhoneFrame';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../lib/api';
@@ -358,9 +359,9 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
               </TouchableOpacity>
             )}
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 11, letterSpacing: 0.5 }}>FINDING STORES FOR</Text>
+              <Text style={{ ...typo.caption, color: colors.textSecondary }}>Finding stores for</Text>
               <Text
-                style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 2 }}
+                style={{ ...typo.heading, color: colors.textPrimary, marginTop: 2 }}
                 numberOfLines={2}
               >
                 {productName}
@@ -517,10 +518,10 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
         <View style={[styles.sheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <View style={styles.sheetHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>
+              <Text style={{ ...typo.heading, color: colors.textPrimary }}>
                 {selectedStore.name}
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+              <Text style={{ ...typo.caption, color: colors.textSecondary, marginTop: 2 }}>
                 {selectedStore.distance_km.toFixed(1)} km · {selectedStore.address.split(',').slice(0, 2).join(',')}
               </Text>
             </View>
@@ -532,40 +533,40 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           <View style={styles.scoreRow}>
             {isRecipeFlow ? (
               <View style={[styles.scorePill, { backgroundColor: matchTone(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100).bg }]}>
-                <Text style={{ color: matchTone(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100).text, fontWeight: '700', fontSize: 13 }}>
+                <Text style={{ ...typo.pill, color: matchTone(((selectedStore.coverage_matched || 0) / Math.max(1, selectedStore.coverage_total || 1)) * 100).text }}>
                   {selectedStore.coverage_matched}/{selectedStore.coverage_total} items
                 </Text>
               </View>
             ) : (
               <View style={[styles.scorePill, { backgroundColor: matchTone(selectedStore.final_score).bg }]}>
-                <Text style={{ color: matchTone(selectedStore.final_score).text, fontWeight: '700', fontSize: 13 }}>
+                <Text style={{ ...typo.pill, color: matchTone(selectedStore.final_score).text }}>
                   Match {Math.round(selectedStore.final_score)}
                 </Text>
               </View>
             )}
             {selectedStore.is_specialty && (
               <View style={[styles.scorePill, { backgroundColor: colors.highlightFill }]}>
-                <Text style={{ color: colors.onHighlightFill, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
-                  SPECIALTY
+                <Text style={{ ...typo.pill, color: colors.onHighlightFill }}>
+                  Specialty
                 </Text>
               </View>
             )}
             {selectedStore.is_preferred && !selectedStore.is_specialty && (
               <View style={[styles.scorePill, { backgroundColor: colors.accentSubtle }]}>
-                <Text style={{ color: colors.textAccent, fontWeight: '700', fontSize: 11, letterSpacing: 0.5 }}>
-                  RECOMMENDED
+                <Text style={{ ...typo.pill, color: colors.textAccent }}>
+                  Recommended
                 </Text>
               </View>
             )}
             {selectedStore.rating != null && (
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              <Text style={{ ...typo.caption, color: colors.textSecondary }}>
                 ⭐ {selectedStore.rating.toFixed(1)} ({selectedStore.rating_count})
               </Text>
             )}
           </View>
 
           {selectedStore.notes && (
-            <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 10, lineHeight: 20 }}>
+            <Text style={{ ...typo.body, color: colors.textSecondary, marginTop: 10 }}>
               {selectedStore.notes}
             </Text>
           )}
@@ -578,7 +579,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
             }
             style={[styles.directionsBtn, { backgroundColor: colors.actionPrimary }]}
           >
-            <Text style={{ color: colors.onActionPrimary, fontWeight: '600', fontSize: 15 }}>Get Directions</Text>
+            <Text style={{ ...typo.label, color: colors.onActionPrimary }}>Get directions</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -587,15 +588,15 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
       {loading && (
         <View style={[styles.loadingPill, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <ActivityIndicator color={colors.accentIcon} size="small" />
-          <Text style={{ color: colors.textPrimary, marginLeft: 8, fontSize: 13 }}>Finding stores…</Text>
+          <Text style={{ ...typo.label, color: colors.textPrimary, marginLeft: 8 }}>Finding stores…</Text>
         </View>
       )}
 
       {/* Error toast (only when not loading and no sheet open) */}
       {!loading && !selectedStore && !showStoreList && errorMsg && (
         <View style={[styles.errorCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
-          <Text style={{ color: colors.highlightText, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>⚠️ Heads up</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>{errorMsg}</Text>
+          <Text style={{ ...typo.bodyStrong, color: colors.highlightText, marginBottom: 4 }}>⚠️ Heads up</Text>
+          <Text style={{ ...typo.body, color: colors.textSecondary }}>{errorMsg}</Text>
         </View>
       )}
 
@@ -606,7 +607,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           style={[styles.countPill, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
         >
           <MaterialCommunityIcons name="format-list-bulleted" size={14} color={colors.textPrimary} />
-          <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '600', marginLeft: 6 }}>
+          <Text style={{ ...typo.label, color: colors.textPrimary, marginLeft: 6 }}>
             {stores.length} store{stores.length === 1 ? '' : 's'} {isRecipeFlow ? `· ${totalNeeded} items` : 'nearby'}
           </Text>
         </TouchableOpacity>
@@ -618,11 +619,11 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
           <View style={[styles.listSheet, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
             <View style={styles.listSheetHeader}>
               <View>
-                <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>
+                <Text style={{ ...typo.heading, color: colors.textPrimary }}>
                   {isRecipeFlow ? `Stores for ${totalNeeded} items` : `${stores.length} stores nearby`}
                 </Text>
                 {isRecipeFlow && (
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ ...typo.caption, color: colors.textSecondary, marginTop: 2 }}>
                     Ranked by ingredients covered
                   </Text>
                 )}
@@ -650,26 +651,26 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                         style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                       >
                         <View style={[styles.listMarker, { backgroundColor: pinTone(store).fill }]}>
-                          <Text style={{ color: pinTone(store).text, fontSize: 11, fontWeight: '800' }}>
+                          <Text style={{ ...typo.pill, color: pinTone(store).text }}>
                             {isRecipeFlow ? store.coverage_matched : Math.round(store.final_score)}
                           </Text>
                         </View>
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <View style={styles.listRowTitle}>
-                            <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+                            <Text style={{ ...typo.heading, color: colors.textPrimary, flex: 1 }} numberOfLines={1}>
                               {store.name}
                             </Text>
                             {isRecipeFlow && (
-                              <Text style={{ color: matchTone(coveragePct).text, fontSize: 13, fontWeight: '700' }}>
+                              <Text style={{ ...typo.pill, color: matchTone(coveragePct).text }}>
                                 {store.coverage_matched}/{store.coverage_total}
                               </Text>
                             )}
                           </View>
-                          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                          <Text style={{ ...typo.caption, color: colors.textSecondary, marginTop: 2 }}>
                             {store.distance_km.toFixed(1)} km
                             {store.rating != null ? ` · ⭐ ${store.rating.toFixed(1)}` : ''}
-                            {store.is_specialty ? ' · SPECIALTY' : ''}
-                            {store.is_preferred && !store.is_specialty ? ' · RECOMMENDED' : ''}
+                            {store.is_specialty ? ' · Specialty' : ''}
+                            {store.is_preferred && !store.is_specialty ? ' · Recommended' : ''}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -691,12 +692,12 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                     {isRecipeFlow && expanded && (
                       <View style={[styles.coverageExpand, { borderColor: colors.borderSubtle }]}>
                         {(store.coverage_items || []).map(item => (
-                          <Text key={item} style={{ color: colors.textSecondary, fontSize: 13, paddingVertical: 3 }}>
+                          <Text key={item} style={{ ...typo.caption, color: colors.textSecondary, paddingVertical: 3 }}>
                             ✓ {item}
                           </Text>
                         ))}
                         {(store.coverage_total || 0) > (store.coverage_matched || 0) && (
-                          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 6, fontStyle: 'italic' }}>
+                          <Text style={{ ...typo.caption, color: colors.textSecondary, marginTop: 6 }}>
                             Missing {((store.coverage_total || 0) - (store.coverage_matched || 0))} item(s) — try a different store for those.
                           </Text>
                         )}
@@ -712,7 +713,7 @@ function MapScreenInner({ route, navigation }: MapScreenProps) {
                         }
                         style={[styles.dirChip, { backgroundColor: colors.accentSubtle }]}
                       >
-                        <Text style={{ color: colors.textAccent, fontSize: 12, fontWeight: '600' }}>Directions →</Text>
+                        <Text style={{ ...typo.label, color: colors.textAccent }}>Directions →</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -738,15 +739,15 @@ const styles = StyleSheet.create({
     flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
   },
-  areaChipText: { flexShrink: 1, fontSize: 13, fontWeight: '700' },
-  areaChipTag: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+  areaChipText: { ...typo.label, flexShrink: 1 },
+  areaChipTag: { ...typo.pill, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   areaClear: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
   areaSheet: { maxHeight: '85%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 },
   areaSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  areaSheetTitle: { fontSize: 20, fontWeight: '800' },
-  areaSheetSub: { fontSize: 13, lineHeight: 18, marginTop: 6, marginBottom: 16 },
+  areaSheetTitle: { ...typo.title },
+  areaSheetSub: { ...typo.body, marginTop: 6, marginBottom: 16 },
   areaOption: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
-  areaOptionText: { flex: 1, fontSize: 15, fontWeight: '600' },
+  areaOptionText: { ...typo.bodyStrong, flex: 1 },
   bannerSafe: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   backButton: {
     width: 36, height: 36, borderRadius: 18,
@@ -777,7 +778,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  searchHereText: { fontSize: 13, fontWeight: '600' },
+  searchHereText: { ...typo.label },
   fab: {
     position: 'absolute',
     right: 16,
@@ -795,8 +796,8 @@ const styles = StyleSheet.create({
     elevation: 4,
     zIndex: 7,
   },
-  hintTitle: { fontSize: 16, fontWeight: '700', marginTop: 12, textAlign: 'center' },
-  hintBody: { fontSize: 13, marginTop: 6, textAlign: 'center', lineHeight: 19 },
+  hintTitle: { ...typo.heading, marginTop: 12, textAlign: 'center' },
+  hintBody: { ...typo.body, marginTop: 6, textAlign: 'center' },
   markerPin: {
     width: 36,
     height: 36,
@@ -806,7 +807,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   markerSpecialty: { borderWidth: 3 },
-  markerText: { fontWeight: '800', fontSize: 12 },
+  markerText: { ...typo.pill },
   userDot: {
     width: 16,
     height: 16,

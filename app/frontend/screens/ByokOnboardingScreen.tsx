@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import SettingsScreen from './SettingsScreen';
 
@@ -41,7 +42,7 @@ export default function ByokOnboardingScreen({ onConfigured }: Props) {
         <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Quickest path</Text>
           <Text style={[styles.cardBody, { color: colors.textSecondary }]}>
-            <Text style={{ fontWeight: '700' }}>OpenRouter</Text> is the easiest — one key works with
+            <Text style={{ fontWeight: typo.bodyStrong.fontWeight }}>OpenRouter</Text> is the easiest — one key works with
             Claude, GPT, Gemini, DeepSeek and 300+ others. $5 of credits will last you weeks.
           </Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://openrouter.ai/keys')}>
@@ -94,19 +95,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     alignSelf: 'center', marginTop: 12, marginBottom: 20,
   },
-  title: { fontSize: 26, fontWeight: '800', textAlign: 'center' },
-  subtitle: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8, marginBottom: 28 },
+  title: { ...typo.display, textAlign: 'center' },
+  subtitle: { ...typo.body, textAlign: 'center', marginTop: 8, marginBottom: 28 },
   card: { padding: 18, borderRadius: 14, borderWidth: 1, marginBottom: 14 },
-  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
-  cardBody: { fontSize: 13, lineHeight: 19, marginBottom: 10 },
+  cardTitle: { ...typo.heading, marginBottom: 12 },
+  cardBody: { ...typo.body, marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  rowText: { fontSize: 13, flex: 1, lineHeight: 18 },
-  link: { fontSize: 13, fontWeight: '600' },
-  privacy: { fontSize: 11, lineHeight: 16, marginTop: 16, textAlign: 'center', paddingHorizontal: 8 },
+  rowText: { ...typo.body, flex: 1 },
+  link: { ...typo.label },
+  privacy: { ...typo.caption, marginTop: 16, textAlign: 'center', paddingHorizontal: 8 },
   footer: { padding: 20, paddingBottom: 28, borderTopWidth: 1 },
   cta: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: 16, borderRadius: 14,
   },
-  ctaText: { fontSize: 16, fontWeight: '700' },
+  ctaText: { ...typo.label },
 });

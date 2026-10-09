@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { useServerStatus } from '../context/ServerStatusContext';
 
@@ -57,6 +58,6 @@ const styles = StyleSheet.create({
   banner: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
   foods: { flexDirection: 'row', gap: 6 },
   food: { fontSize: 22 },
-  title: { fontSize: 14, fontWeight: '700', marginTop: 8 },
-  sub: { fontSize: 12, marginTop: 2, textAlign: 'center' },
+  title: { ...typo.bodyStrong, marginTop: 8 },
+  sub: { ...typo.caption, marginTop: 2, textAlign: 'center' },
 });

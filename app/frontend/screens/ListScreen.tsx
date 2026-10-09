@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { residenceName, residenceInText } from '../lib/residence';
+import { typo } from '../theme/typography';
 import { useTheme } from '../theme/ThemeContext';
 import { apiFetchJson } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -152,7 +153,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
     }
   };
 
-  // Home's "Recipe Lists" cards pass openListId: open the saved list straight from the
+  // Home's "Recipe lists" cards pass openListId: open the saved list straight from the
   // database instead of re-running the AI import (slow, and it used up the daily quota).
   useEffect(() => {
     const id = route?.params?.openListId;
@@ -327,7 +328,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
 
             {!imported && !loading && !error && (
               <View style={{ marginTop: 24 }}>
-                <Text style={[styles.suggestLabel, { color: colors.textSecondary }]}>TRY ONE OF THESE</Text>
+                <Text style={[styles.suggestLabel, { color: colors.textSecondary }]}>Try one of these</Text>
                 <View style={styles.chipWrap}>
                   {SUGGESTED_DISHES.map(d => (
                     <TouchableOpacity
@@ -335,7 +336,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
                       onPress={() => { setDish(d); importRecipe(d); }}
                       style={[styles.suggestChip, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}
                     >
-                      <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '500' }}>{d}</Text>
+                      <Text style={{ ...typo.label, color: colors.textPrimary }}>{d}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -362,7 +363,7 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
               Every recipe you import is saved here automatically.
             </Text>
             <TouchableOpacity onPress={() => setSection('import')} style={[styles.emptyButton, { backgroundColor: colors.actionPrimary }]}>
-              <Text style={{ color: colors.onActionPrimary, fontWeight: '700' }}>Import a recipe</Text>
+              <Text style={{ ...typo.label, color: colors.onActionPrimary }}>Import a recipe</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -410,36 +411,33 @@ export default function ListScreen({ navigation, route }: { navigation?: any; ro
 }
 
 const styles = StyleSheet.create({
-  loadingHint: { fontSize: 13, marginTop: 14, textAlign: 'center' },
+  loadingHint: { ...typo.caption, marginTop: 14, textAlign: 'center' },
   container: { flex: 1 },
   scrollContent: { padding: 20 },
-  title: { fontSize: 28, fontWeight: '700', marginTop: 4 },
-  subtitle: { fontSize: 14, marginTop: 18, marginBottom: 16, lineHeight: 20 },
+  title: { ...typo.display, marginTop: 4 },
+  subtitle: { ...typo.body, marginTop: 18, marginBottom: 16 },
   segment: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, marginTop: 16 },
   segmentItem: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  segmentText: { fontSize: 14, fontWeight: '700' },
+  segmentText: { ...typo.label },
   backLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, alignSelf: 'flex-start' },
-  backLinkText: { fontSize: 14, fontWeight: '700' },
+  backLinkText: { ...typo.label },
   savedCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
   savedIcon: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  savedTitle: { fontSize: 15, fontWeight: '700' },
-  savedMeta: { fontSize: 12, marginTop: 3 },
+  savedTitle: { ...typo.heading },
+  savedMeta: { ...typo.caption, marginTop: 3 },
   deleteButton: { padding: 4 },
   emptyCard: { alignItems: 'center', padding: 28, borderRadius: 16, borderWidth: 1, marginTop: 20 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', marginTop: 10 },
-  emptyText: { fontSize: 13, marginTop: 4, textAlign: 'center' },
+  emptyTitle: { ...typo.heading, marginTop: 10 },
+  emptyText: { ...typo.body, marginTop: 4, textAlign: 'center' },
   emptyButton: { marginTop: 16, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
   inputRow: { flexDirection: 'row', gap: 10 },
-  input: {
-    flex: 1,
+  input: { ...typo.body, flex: 1,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 15,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   importButton: { width: 52, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  suggestLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
+  suggestLabel: { ...typo.caption, marginBottom: 12 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   suggestChip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
   findStoresButton: {
@@ -451,21 +449,21 @@ const styles = StyleSheet.create({
     marginTop: 16,
     gap: 8,
   },
-  findStoresText: { fontWeight: '700', fontSize: 15 },
-  dishHeader: { fontSize: 22, fontWeight: '700', marginBottom: 2 },
-  dishSub: { fontSize: 13, marginBottom: 16 },
+  findStoresText: { ...typo.label },
+  dishHeader: { ...typo.title, marginBottom: 2 },
+  dishSub: { ...typo.caption, marginBottom: 16 },
   ingredientCard: { borderRadius: 14, padding: 16, borderWidth: 1, marginBottom: 10 },
   ingredientHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  originalName: { fontSize: 15, fontWeight: '700' },
-  usName: { fontSize: 13, marginTop: 4, fontWeight: '500' },
+  originalName: { ...typo.heading },
+  usName: { ...typo.bodyStrong, marginTop: 4 },
   scoreBadge: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-  scoreBadgeText: { fontWeight: '800', fontSize: 14 },
+  scoreBadgeText: { ...typo.pill },
   aisleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
-  aisleText: { fontSize: 12 },
+  aisleText: { ...typo.caption },
   tipBox: { padding: 10, borderRadius: 10, marginTop: 10 },
-  tipText: { fontSize: 13, lineHeight: 18 },
+  tipText: { ...typo.body },
   homeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  homeBadgeText: { fontSize: 11, fontWeight: '700' },
+  homeBadgeText: { ...typo.pill },
   ingredientFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -483,5 +481,5 @@ const styles = StyleSheet.create({
     gap: 4,
     marginLeft: 'auto',
   },
-  findOneText: { fontSize: 11, fontWeight: '700' },
+  findOneText: { ...typo.label },
 });
